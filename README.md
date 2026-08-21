@@ -17,8 +17,6 @@ Uygulama üzerinden etkinlikler oluşturulabilir, listelenebilir, ID üzerinden 
 
 ## Proje Mimarisi
 
-Projede Repository Pattern kullanılmıştır.
-
 Controller → Repository → AppDbContext → Entity Framework Core → SQL Server
 
 ## API Endpointleri
@@ -31,11 +29,42 @@ Controller → Repository → AppDbContext → Entity Framework Core → SQL Ser
 | PUT | `/api/events/{id}` | Etkinlik bilgilerini günceller |
 | DELETE | `/api/events/{id}` | Etkinliği siler |
 
+## Kurulum
+
+### Gereksinimler
+
+- .NET 10 SDK
+- Docker Desktop
+- Git
+
+### Kurulum Adımları
+
+git clone https://github.com/muyasemih/TicketApp.git
+cd TicketApp
+
+docker run -e "ACCEPT_EULA=Y" -e "MSSQL_SA_PASSWORD=YOUR_PASSWORD" -p 1433:1433 --name staj-sql -d mcr.microsoft.com/mssql/server:2022-latest
+
+dotnet user-secrets init
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost,1433;Database=TicketAppDb;User Id=sa;Password=YOUR_PASSWORD;TrustServerCertificate=True;"
+
+dotnet tool install --global dotnet-ef
+
+dotnet restore
+dotnet build
+dotnet ef database update
+dotnet run
+
+Uygulama çalıştırıldıktan sonra:
+
+http://localhost:5040
+
+adresinden API'ye erişilebilir.
+
 ## Veritabanı
 
-Proje SQL Server kullanmaktadır. SQL Server Docker container üzerinden çalıştırılmaktadır.
+SQL Server Docker container üzerinden çalıştırılmaktadır.
 
-Veritabanı işlemleri Entity Framework Core ve AppDbContext üzerinden gerçekleştirilmektedir.
+Entity Framework Core ve AppDbContext kullanılarak veritabanı işlemleri gerçekleştirilmektedir.
 
 ## Güvenlik
 
