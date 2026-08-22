@@ -1,29 +1,29 @@
 using Microsoft.AspNetCore.Mvc;
 using TicketApp.Models;
-using TicketApp.Repositories;
+using TicketApp.Services;
 
 [ApiController]
 [Route("api/[controller]")]
 public class EventsController : ControllerBase
 {
-    private readonly IEventRepository _repository;
+    private readonly IEventService _service;
 
-    public EventsController(IEventRepository repository)
+    public EventsController(IEventService service)
     {
-        _repository = repository;
+        _service = service;
     }
 
     [HttpGet]
     public async Task<IActionResult> GetEvents()
     {
-        var events = await _repository.GetAllAsync();
+        var events = await _service.GetAllAsync();
 
         return Ok(events);
     }
     [HttpGet("{id}")]
     public async Task<IActionResult> GetEventById(int id)
     {
-        var eventItem = await _repository.GetByIdAsync(id);
+        var eventItem = await _service.GetByIdAsync(id);
 
         if (eventItem == null)
         {
@@ -35,14 +35,14 @@ public class EventsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateEvent(Event newEvent)
     {
-        await _repository.AddAsync(newEvent);
+        await _service.CreateAsync(newEvent);
 
         return Ok(newEvent);
     }
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateEvent(int id, Event updatedEvent)
     {
-        var eventItem = await _repository.GetByIdAsync(id);
+        var eventItem = await _service.GetByIdAsync(id);
 
         if (eventItem == null)
         {
@@ -52,21 +52,21 @@ public class EventsController : ControllerBase
         eventItem.Name = updatedEvent.Name;
         eventItem.Price = updatedEvent.Price;
 
-        await _repository.UpdateAsync(eventItem);
+        await _service.UpdateAsync(id, updatedEvent);
 
         return Ok(eventItem);
     }
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteEvent(int id)
     {
-         var eventItem = await _repository.GetByIdAsync(id);
+         var eventItem = await _service.GetByIdAsync(id);
 
         if (eventItem == null)
         {
             return NotFound();
         }
 
-        await _repository.DeleteAsync(eventItem);
+        await _service.DeleteAsync(id);
         return Ok(eventItem);
 
     }

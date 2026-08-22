@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TicketApp.Models;
 using TicketApp.Repositories;
+using TicketApp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,6 +10,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<IEventRepository, EventRepository>();
+builder.Services.AddScoped<IEventService, EventService>();
 builder.Services.AddOpenApi();
 builder.Services.AddControllers();
 
