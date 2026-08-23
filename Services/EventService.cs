@@ -21,6 +21,10 @@ public class EventService : IEventService
         }
     public async Task<Event> CreateAsync(Event newEvent)
         {
+            if (newEvent.Price<0)
+            {
+                throw new Exception("Etkinlik fiyatı negatif olamaz.");
+            }
             await _repository.AddAsync(newEvent);
 
             return newEvent;

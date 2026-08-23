@@ -35,9 +35,19 @@ public class EventsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateEvent(Event newEvent)
     {
-        await _service.CreateAsync(newEvent);
+        try
+        {
+            var eventItem = await _service.CreateAsync(newEvent);
 
-        return Ok(newEvent);
+            return Ok(eventItem);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new
+            {
+                error = ex.Message
+            });
+        }
     }
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateEvent(int id, Event updatedEvent)
