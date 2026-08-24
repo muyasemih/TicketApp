@@ -45,7 +45,6 @@ public class EventService : IEventService
     public async Task<Event> CreateAsync(Event newEvent)
     {
         await _repository.AddAsync(newEvent);
-
         return newEvent;
     }
 

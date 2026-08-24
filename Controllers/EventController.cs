@@ -44,7 +44,11 @@ public class EventsController : ControllerBase
 
         await _service.CreateAsync(eventItem);
 
-        return Ok(eventItem);
+        return CreatedAtAction(
+            nameof(GetEventById),
+            new { id = eventItem.Id },
+            eventItem
+        );
     }
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateEvent(int id, UpdateEventDto updatedEvent)
@@ -67,7 +71,7 @@ public class EventsController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteEvent(int id)
     {
-         var eventItem = await _service.GetByIdAsync(id);
+        var eventItem = await _service.GetByIdAsync(id);
 
         if (eventItem == null)
         {
@@ -75,7 +79,7 @@ public class EventsController : ControllerBase
         }
 
         await _service.DeleteAsync(id);
-        return Ok(eventItem);
 
+        return NoContent();
     }
 }
