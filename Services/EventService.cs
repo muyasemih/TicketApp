@@ -1,3 +1,4 @@
+using TicketApp.DTOs;
 using TicketApp.Models;
 using TicketApp.Repositories;
 
@@ -11,51 +12,71 @@ public class EventService : IEventService
     {
         _repository = repository;
     }
-    public async Task<List<Event>> GetAllAsync()
+
+    public async Task<List<EventDto>> GetAllAsync()
+    {
+        var events = await _repository.GetAllAsync();
+
+        return events.Select(e => new EventDto
         {
-            return await _repository.GetAllAsync();
-        }
-    public async Task<Event?> GetByIdAsync(int id)
+            Id = e.Id,
+            Name = e.Name,
+            Price = e.Price
+        }).ToList();
+    }
+
+    public async Task<EventDto?> GetByIdAsync(int id)
+    {
+        var eventItem = await _repository.GetByIdAsync(id);
+
+        if (eventItem == null)
         {
-            return await _repository.GetByIdAsync(id);
+            return null;
         }
+
+        return new EventDto
+        {
+            Id = eventItem.Id,
+            Name = eventItem.Name,
+            Price = eventItem.Price
+        };
+    }
+
     public async Task<Event> CreateAsync(Event newEvent)
+    {
+        await _repository.AddAsync(newEvent);
+
+        return newEvent;
+    }
+
+    public async Task<Event?> UpdateAsync(int id, Event updatedEvent)
+    {
+        var eventItem = await _repository.GetByIdAsync(id);
+
+        if (eventItem == null)
         {
-            if (newEvent.Price<0)
-            {
-                throw new Exception("Etkinlik fiyatı negatif olamaz.");
-            }
-            await _repository.AddAsync(newEvent);
-
-            return newEvent;
+            return null;
         }
-            public async Task<Event?> UpdateAsync(int id, Event updatedEvent)
-            {
-                var eventItem = await _repository.GetByIdAsync(id);
 
-                if (eventItem == null)
-                {
-                    return null;
-                }
+        eventItem.Name = updatedEvent.Name;
+        eventItem.Price = updatedEvent.Price;
 
-                eventItem.Name = updatedEvent.Name;
-                eventItem.Price = updatedEvent.Price;
+        await _repository.UpdateAsync(eventItem);
 
-                await _repository.UpdateAsync(eventItem);
+        return eventItem;
+    }
 
-                return eventItem;
-            }
-            public async Task<bool> DeleteAsync(int id)
-            {
-                var eventItem = await _repository.GetByIdAsync(id);
+    public async Task<bool> DeleteAsync(int id)
+    {
+        var eventItem = await _repository.GetByIdAsync(id);
 
-                if (eventItem == null)
-                {
-                    return false;
-                }
+        if (eventItem == null)
+        {
+            return false;
+        }
 
-                await _repository.DeleteAsync(eventItem);
+        await _repository.DeleteAsync(eventItem);
 
-                return true;
-            }
+        return true;
+    }
 }

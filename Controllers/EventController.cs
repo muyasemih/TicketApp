@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using TicketApp.Models;
 using TicketApp.Services;
+using TicketApp.DTOs;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -33,38 +34,35 @@ public class EventsController : ControllerBase
         return Ok(eventItem);
     }
     [HttpPost]
-    public async Task<IActionResult> CreateEvent(Event newEvent)
+    public async Task<IActionResult> CreateEvent(CreateEventDto newEvent)
     {
-        try
+        var eventItem = new Event
         {
-            var eventItem = await _service.CreateAsync(newEvent);
+            Name = newEvent.Name,
+            Price = newEvent.Price
+        };
 
-            return Ok(eventItem);
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new
-            {
-                error = ex.Message
-            });
-        }
+        await _service.CreateAsync(eventItem);
+
+        return Ok(eventItem);
     }
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateEvent(int id, Event updatedEvent)
+    public async Task<IActionResult> UpdateEvent(int id, UpdateEventDto updatedEvent)
     {
-        var eventItem = await _service.GetByIdAsync(id);
+        var eventItem = new Event
+        {
+            Name = updatedEvent.Name,
+            Price = updatedEvent.Price
+        };
 
-        if (eventItem == null)
+        var result = await _service.UpdateAsync(id, eventItem);
+
+        if (result == null)
         {
             return NotFound();
         }
 
-        eventItem.Name = updatedEvent.Name;
-        eventItem.Price = updatedEvent.Price;
-
-        await _service.UpdateAsync(id, updatedEvent);
-
-        return Ok(eventItem);
+        return Ok(result);
     }
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteEvent(int id)
