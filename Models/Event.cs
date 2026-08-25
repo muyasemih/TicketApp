@@ -7,4 +7,8 @@ public class Event
     public string Name { get; set; } = string.Empty;
 
     public decimal Price { get; set; }
+
+    public int? VenueId { get; set; }
+
+    public Venue? Venue { get; set; }
 }

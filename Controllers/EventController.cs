@@ -21,6 +21,7 @@ public class EventsController : ControllerBase
 
         return Ok(events);
     }
+
     [HttpGet("{id}")]
     public async Task<IActionResult> GetEventById(int id)
     {
@@ -33,13 +34,15 @@ public class EventsController : ControllerBase
 
         return Ok(eventItem);
     }
+
     [HttpPost]
     public async Task<IActionResult> CreateEvent(CreateEventDto newEvent)
     {
         var eventItem = new Event
         {
             Name = newEvent.Name,
-            Price = newEvent.Price
+            Price = newEvent.Price,
+            VenueId = newEvent.VenueId
         };
 
         await _service.CreateAsync(eventItem);
@@ -50,13 +53,17 @@ public class EventsController : ControllerBase
             eventItem
         );
     }
+
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateEvent(int id, UpdateEventDto updatedEvent)
+    public async Task<IActionResult> UpdateEvent(
+        int id,
+        UpdateEventDto updatedEvent)
     {
         var eventItem = new Event
         {
             Name = updatedEvent.Name,
-            Price = updatedEvent.Price
+            Price = updatedEvent.Price,
+            VenueId = updatedEvent.VenueId
         };
 
         var result = await _service.UpdateAsync(id, eventItem);
@@ -68,6 +75,7 @@ public class EventsController : ControllerBase
 
         return Ok(result);
     }
+
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteEvent(int id)
     {

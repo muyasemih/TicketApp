@@ -9,4 +9,6 @@ public class UpdateEventDto
 
     [Range(0, double.MaxValue)]
     public decimal Price { get; set; }
+
+    public int? VenueId { get; set; }
 }

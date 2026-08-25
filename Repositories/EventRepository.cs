@@ -14,24 +14,33 @@ public class EventRepository : IEventRepository
 
     public async Task<List<Event>> GetAllAsync()
     {
-        return await _db.Events.ToListAsync();
+        return await _db.Events
+            .Include(e => e.Venue)
+            .ThenInclude(v => v.Blocks)
+            .ToListAsync();
     }
+
     public async Task<Event?> GetByIdAsync(int id)
     {
         return await _db.Events
-            .FirstOrDefaultAsync(e=> e.Id == id);
+            .Include(e => e.Venue)
+            .ThenInclude(v => v.Blocks)
+            .FirstOrDefaultAsync(e => e.Id == id);
     }
+
     public async Task AddAsync(Event newEvent)
     {
         _db.Events.Add(newEvent);
         await _db.SaveChangesAsync();
     }
+
     public async Task UpdateAsync(Event eventItem)
     {
         _db.Events.Update(eventItem);
 
         await _db.SaveChangesAsync();
     }
+
     public async Task DeleteAsync(Event eventItem)
     {
         _db.Events.Remove(eventItem);
