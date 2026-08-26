@@ -46,7 +46,12 @@ public class VenueController : ControllerBase
             Blocks = newVenue.Blocks.Select(block => new VenueBlock
             {
                 Name = block.Name,
-                Capacity = block.Capacity
+                Type = block.Type,
+                RowCount = block.RowCount,
+                SeatsPerRow = block.SeatsPerRow,
+                Capacity = block.Type == VenueBlockType.Seated
+                    ? block.RowCount * block.SeatsPerRow
+                    : block.Capacity
             }).ToList()
         };
 
@@ -70,7 +75,12 @@ public class VenueController : ControllerBase
             Blocks = updatedVenue.Blocks.Select(block => new VenueBlock
             {
                 Name = block.Name,
-                Capacity = block.Capacity
+                Type = block.Type,
+                RowCount = block.RowCount,
+                SeatsPerRow = block.SeatsPerRow,
+                Capacity = block.Type == VenueBlockType.Seated
+                    ? block.RowCount * block.SeatsPerRow
+                    : block.Capacity
             }).ToList()
         };
 

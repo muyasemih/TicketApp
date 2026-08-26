@@ -42,6 +42,7 @@ public class EventsController : ControllerBase
         {
             Name = newEvent.Name,
             Price = newEvent.Price,
+            EventDate = newEvent.EventDate!.Value,
             VenueId = newEvent.VenueId
         };
 
@@ -63,6 +64,7 @@ public class EventsController : ControllerBase
         {
             Name = updatedEvent.Name,
             Price = updatedEvent.Price,
+            EventDate = updatedEvent.EventDate!.Value,
             VenueId = updatedEvent.VenueId
         };
 

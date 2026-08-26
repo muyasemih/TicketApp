@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using TicketApp.Models;
 
 namespace TicketApp.DTOs;
 
@@ -15,6 +16,11 @@ public class CreateVenueBlockDto
     [Required]
     public string Name { get; set; } = string.Empty;
 
-    [Range(1, int.MaxValue)]
+    public VenueBlockType Type { get; set; }
+
+    public int RowCount { get; set; }
+
+    public int SeatsPerRow { get; set; }
+
     public int Capacity { get; set; }
 }

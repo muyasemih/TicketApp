@@ -9,6 +9,7 @@ public class Event
     public decimal Price { get; set; }
 
     public int? VenueId { get; set; }
+    public DateTime EventDate { get; set; }
 
     public Venue? Venue { get; set; }
 }

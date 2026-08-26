@@ -10,5 +10,8 @@ public class CreateEventDto
     [Range(0, double.MaxValue)]
     public decimal Price { get; set; }
 
+    [Required]
+    public DateTime? EventDate { get; set; }
+
     public int? VenueId { get; set; }
 }

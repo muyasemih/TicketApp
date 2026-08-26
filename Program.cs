@@ -15,11 +15,15 @@ builder.Services.AddScoped<IEventService, EventService>();
 builder.Services.AddScoped<IVenueRepository, VenueRepository>();
 builder.Services.AddScoped<IVenueService, VenueService>();
 builder.Services.AddOpenApi();
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(
+            new System.Text.Json.Serialization.JsonStringEnumConverter());
+    });
 
 var app = builder.Build();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
-app.UseExceptionHandler("/error");
 
 if (app.Environment.IsDevelopment())
 {

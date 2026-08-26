@@ -16,6 +16,7 @@ public class VenueRepository : IVenueRepository
     {
         return await _context.Venues
             .Include(v => v.Blocks)
+                .ThenInclude(b => b.Seats)
             .ToListAsync();
     }
 
@@ -23,6 +24,7 @@ public class VenueRepository : IVenueRepository
     {
         return await _context.Venues
             .Include(v => v.Blocks)
+                .ThenInclude(b => b.Seats)
             .FirstOrDefaultAsync(v => v.Id == id);
     }
 

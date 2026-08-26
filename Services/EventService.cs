@@ -22,6 +22,7 @@ public class EventService : IEventService
             Id = e.Id,
             Name = e.Name,
             Price = e.Price,
+            EventDate = e.EventDate,
             VenueId = e.VenueId,
             Venue = e.Venue == null ? null : new VenueDto
             {
@@ -31,6 +32,9 @@ public class EventService : IEventService
                 {
                     Id = b.Id,
                     Name = b.Name,
+                    Type = b.Type,
+                    RowCount = b.RowCount,
+                    SeatsPerRow = b.SeatsPerRow,
                     Capacity = b.Capacity
                 }).ToList()
             }
@@ -51,6 +55,7 @@ public class EventService : IEventService
             Id = eventItem.Id,
             Name = eventItem.Name,
             Price = eventItem.Price,
+            EventDate = eventItem.EventDate,
             VenueId = eventItem.VenueId,
             Venue = eventItem.Venue == null ? null : new VenueDto
             {
@@ -60,6 +65,9 @@ public class EventService : IEventService
                 {
                     Id = b.Id,
                     Name = b.Name,
+                    Type = b.Type,
+                    RowCount = b.RowCount,
+                    SeatsPerRow = b.SeatsPerRow,
                     Capacity = b.Capacity
                 }).ToList()
             }
@@ -84,6 +92,7 @@ public class EventService : IEventService
 
         eventItem.Name = updatedEvent.Name;
         eventItem.Price = updatedEvent.Price;
+        eventItem.EventDate = updatedEvent.EventDate;
         eventItem.VenueId = updatedEvent.VenueId;
 
         await _repository.UpdateAsync(eventItem);
