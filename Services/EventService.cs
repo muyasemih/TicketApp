@@ -76,7 +76,38 @@ public class EventService : IEventService
 
     public async Task<Event> CreateAsync(Event newEvent)
     {
+        if (newEvent.VenueId.HasValue)
+        {
+            var venue = await _repository.GetVenueWithSeatsAsync(newEvent.VenueId.Value);
+
+            if (venue == null)
+            {
+                throw new ArgumentException(
+                    $"Venue bulunamadı. Id: {newEvent.VenueId.Value}");
+            }
+
+            newEvent.Venue = venue;
+        }
+
         await _repository.AddAsync(newEvent);
+
+        if (newEvent.Venue != null)
+        {
+            var eventSeats = newEvent.Venue.Blocks
+                .SelectMany(block => block.Seats)
+                .Select(seat => new EventSeat
+                {
+                    EventId = newEvent.Id,
+                    SeatId = seat.Id,
+                    Status = EventSeatStatus.Available
+                })
+                .ToList();
+
+            if (eventSeats.Count > 0)
+            {
+                await _repository.AddEventSeatsAsync(eventSeats);
+            }
+        }
 
         return newEvent;
     }
@@ -98,6 +129,71 @@ public class EventService : IEventService
         await _repository.UpdateAsync(eventItem);
 
         return eventItem;
+    }
+
+    public async Task<EventSeat?> ReserveSeatAsync(int eventId, int seatId)
+    {
+        var eventSeat = await _repository.GetEventSeatAsync(eventId, seatId);
+
+        if (eventSeat == null)
+        {
+            return null;
+        }
+
+        var now = DateTime.UtcNow;
+
+        if (eventSeat.Status == EventSeatStatus.Reserved &&
+            eventSeat.ReservedUntil.HasValue &&
+            eventSeat.ReservedUntil.Value <= now)
+        {
+            eventSeat.Status = EventSeatStatus.Available;
+            eventSeat.ReservedUntil = null;
+        }
+
+        if (eventSeat.Status != EventSeatStatus.Available)
+        {
+            return null;
+        }
+
+        eventSeat.Status = EventSeatStatus.Reserved;
+        eventSeat.ReservedUntil = now.AddMinutes(10);
+
+        await _repository.UpdateEventSeatAsync(eventSeat);
+
+        return eventSeat;
+    }
+
+    public async Task<EventSeat?> SellSeatAsync(int eventId, int seatId)
+    {
+        var eventSeat = await _repository.GetEventSeatAsync(eventId, seatId);
+
+        if (eventSeat == null)
+        {
+            return null;
+        }
+
+        if (eventSeat.Status != EventSeatStatus.Reserved)
+        {
+            return null;
+        }
+
+        if (!eventSeat.ReservedUntil.HasValue ||
+            eventSeat.ReservedUntil.Value <= DateTime.UtcNow)
+        {
+            eventSeat.Status = EventSeatStatus.Available;
+            eventSeat.ReservedUntil = null;
+
+            await _repository.UpdateEventSeatAsync(eventSeat);
+
+            return null;
+        }
+
+        eventSeat.Status = EventSeatStatus.Sold;
+        eventSeat.ReservedUntil = null;
+
+        await _repository.UpdateEventSeatAsync(eventSeat);
+
+        return eventSeat;
     }
 
     public async Task<bool> DeleteAsync(int id)

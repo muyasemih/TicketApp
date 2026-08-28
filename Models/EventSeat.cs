@@ -13,4 +13,6 @@ public class EventSeat
     public Seat Seat { get; set; } = null!;
 
     public EventSeatStatus Status { get; set; }
+
+    public DateTime? ReservedUntil { get; set; }
 }

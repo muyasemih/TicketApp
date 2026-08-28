@@ -18,12 +18,9 @@ public class UpdateVenueBlockDto
 
     public VenueBlockType Type { get; set; }
 
-    [Range(1, int.MaxValue)]
     public int RowCount { get; set; }
 
-    [Range(1, int.MaxValue)]
     public int SeatsPerRow { get; set; }
 
-    [Range(1, int.MaxValue)]
     public int Capacity { get; set; }
 }

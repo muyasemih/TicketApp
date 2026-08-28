@@ -92,4 +92,34 @@ public class EventsController : ControllerBase
 
         return NoContent();
     }
+    [HttpPost("{eventId}/seats/{seatId}/reserve")]
+    public async Task<IActionResult> ReserveSeat(int eventId, int seatId)
+    {
+        var eventSeat = await _service.ReserveSeatAsync(eventId, seatId);
+
+        if (eventSeat == null)
+        {
+            return BadRequest(new
+            {
+                error = "Koltuk mevcut değil veya şu anda rezerve edilemiyor."
+            });
+        }
+
+        return Ok(eventSeat);
+    }
+    [HttpPost("{eventId}/seats/{seatId}/sell")]
+    public async Task<IActionResult> SellSeat(int eventId, int seatId)
+    {
+        var eventSeat = await _service.SellSeatAsync(eventId, seatId);
+
+        if (eventSeat == null)
+        {
+            return BadRequest(new
+            {
+                error = "Koltuk mevcut değil, rezerve edilmemiş veya rezervasyon süresi dolmuş."
+            });
+        }
+
+        return Ok(eventSeat);
+    }
 }
