@@ -1,0 +1,45 @@
+<div class="login-container">
+  <div class="login-card">
+    <h1>TicketApp</h1>
+    <p class="subtitle">Hesabınıza giriş yapın</p>
+
+    <form (ngSubmit)="login()">
+      <div class="form-group">
+        <label for="email">E-posta</label>
+        <input
+          id="email"
+          type="email"
+          name="email"
+          [(ngModel)]="email"
+          placeholder="ornek@email.com"
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="password">Şifre</label>
+        <input
+          id="password"
+          type="password"
+          name="password"
+          [(ngModel)]="password"
+          placeholder="Şifrenizi girin"
+          required
+        />
+      </div>
+
+      @if (errorMessage) {
+        <p class="error-message">{{ errorMessage }}</p>
+      }
+
+      <button type="submit" [disabled]="isLoading">
+        {{ isLoading ? 'Giriş yapılıyor...' : 'Giriş Yap' }}
+      </button>
+    </form>
+
+    <p class="register-text">
+      Hesabınız yok mu?
+      <a routerLink="/register">Kayıt Ol</a>
+    </p>
+  </div>
+</div>

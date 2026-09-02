@@ -1,0 +1,100 @@
+<div class="register-page">
+  <div class="register-card">
+
+    <h1>TicketApp</h1>
+    <p class="subtitle">Yeni hesap oluştur</p>
+
+    @if (errorMessage) {
+      <div class="error">
+        {{ errorMessage }}
+      </div>
+    }
+
+    @if (successMessage) {
+      <div class="success">
+        {{ successMessage }}
+      </div>
+    }
+
+    <form (ngSubmit)="register()">
+    <div class="form-group">
+    <label for="name">Ad Soyad</label>
+
+    <input
+        id="name"
+        type="text"
+        name="name"
+        [(ngModel)]="name"
+        placeholder="Ad Soyad"
+        required
+    />
+    </div>
+      <div class="form-group">
+        <label for="email">E-posta</label>
+
+        <input
+          id="email"
+          type="email"
+          name="email"
+          [(ngModel)]="email"
+          placeholder="ornek@email.com"
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="password">Şifre</label>
+
+        <input
+          id="password"
+          type="password"
+          name="password"
+          [(ngModel)]="password"
+          placeholder="Şifrenizi girin"
+          required
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="confirmPassword">Şifre Tekrar</label>
+
+        <input
+          id="confirmPassword"
+          type="password"
+          name="confirmPassword"
+          [(ngModel)]="confirmPassword"
+          placeholder="Şifrenizi tekrar girin"
+          required
+        />
+      </div>
+
+      <label class="student-option">
+        <input
+          type="checkbox"
+          name="isStudent"
+          [(ngModel)]="isStudent"
+        />
+
+        <span>Öğrenciyim (%10 öğrenci indirimi)</span>
+      </label>
+
+      <button
+        type="submit"
+        [disabled]="isLoading"
+      >
+        @if (isLoading) {
+          Kayıt oluşturuluyor...
+        } @else {
+          Kayıt Ol
+        }
+      </button>
+
+    </form>
+
+    <p class="login-link">
+      Zaten hesabınız var mı?
+      <a routerLink="/login">Giriş Yap</a>
+    </p>
+
+  </div>
+</div>

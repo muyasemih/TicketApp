@@ -59,7 +59,13 @@ public class EventRepository : IEventRepository
                 es.EventId == eventId &&
                 es.SeatId == seatId);
     }
-
+    public async Task<List<EventSeat>> GetEventSeatsAsync(int eventId)
+    {
+        return await _db.EventSeats
+            .Include(es => es.Seat)
+            .Where(es => es.EventId == eventId)
+            .ToListAsync();
+    }
     public async Task UpdateEventSeatAsync(EventSeat eventSeat)
     {
         _db.EventSeats.Update(eventSeat);

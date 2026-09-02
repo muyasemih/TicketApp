@@ -1,0 +1,53 @@
+<div class="events-page">
+  <header class="page-header">
+    <div>
+      <h1>TicketApp</h1>
+      <p>Etkinlikler</p>
+    </div>
+ 
+    <div class="header-actions">
+    <a routerLink="/orders" class="orders-button">
+      Biletlerim
+    </a>
+
+    <button class="logout-button" (click)="logout()">
+      Çıkış Yap
+    </button>
+  </div>
+  </header>
+
+  <main class="events-container">
+
+    @if (isLoading) {
+      <p class="loading">Etkinlikler yükleniyor...</p>
+    }
+
+    @if (errorMessage) {
+      <p class="error">{{ errorMessage }}</p>
+    }
+
+    @if (!isLoading && !errorMessage) {
+      <div class="events-grid">
+        @for (event of events; track event.id) {
+          <div class="event-card">
+            <h2>{{ event.name }}</h2>
+
+            <p>
+              📅
+              {{ event.date | date:'dd.MM.yyyy HH:mm' }}
+            </p>
+
+            <p>
+              📍 Salon #{{ event.venueId }}
+            </p>
+
+            <button [routerLink]="['/events', event.id]">
+                Etkinliği Gör
+            </button>
+          </div>
+        }
+      </div>
+    }
+
+  </main>
+</div>

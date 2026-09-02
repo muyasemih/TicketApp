@@ -1,0 +1,178 @@
+<div class="seats-page">
+
+  <div class="seats-card">
+
+    <a routerLink="/events" class="back-link">
+      ← Etkinliklere Dön
+    </a>
+
+    <h1>Koltuk Seçimi</h1>
+    <p class="subtitle">Size uygun koltuğu seçin</p>
+
+    @if (isLoading) {
+      <p class="loading">Koltuklar yükleniyor...</p>
+    }
+
+    @if (errorMessage) {
+      <p class="error">{{ errorMessage }}</p>
+    }
+
+    @if (!isLoading && !errorMessage) {
+
+      <div class="screen">
+        SAHNE
+      </div>
+
+      <div class="legend">
+        <span>
+          <i class="free"></i>
+          Boş
+        </span>
+
+        <span>
+          <i class="reserved"></i>
+          Rezerve
+        </span>
+
+        <span>
+          <i class="sold"></i>
+          Satılmış
+        </span>
+      </div>
+
+
+      <!-- ========================= -->
+      <!-- A BLOK - KOLTUKLAR -->
+      <!-- ========================= -->
+
+      <div class="seated-area">
+
+        <h2>A Blok</h2>
+
+        <div class="seats-grid">
+
+        @for (seat of seats; track seat.id) {
+        @if (seat.blockName !== 'Ayakta Alan' && seat.blockType !== 1) {
+
+              <button
+                class="seat"
+                [class.free]="seat.status === 'Available'"
+                [class.reserved]="seat.status === 'Reserved'"
+                [class.sold]="seat.status === 'Sold'"
+                [disabled]="seat.status !== 'Available'"
+                (click)="reserveSeat(seat)"
+              >
+                {{ seat.seatId }}
+              </button>
+
+            }
+
+          }
+
+        </div>
+
+      </div>
+
+
+      <!-- ========================= -->
+      <!-- AYAKTA ALAN -->
+      <!-- ========================= -->
+
+      @if (standingAvailableCount >= 0 && hasStanding) {
+
+        <div class="standing-area">
+
+          <h2>Ayakta Alan</h2>
+
+          <div class="standing-content">
+
+            <div class="standing-icon">
+              🧍 🧍 🧍
+            </div>
+
+            <p class="standing-description">
+              Ayakta izleme alanı
+            </p>
+
+            <p class="standing-capacity">
+              Kalan:
+              <strong>{{ standingAvailableCount }}</strong>
+              / 100 kişi
+            </p>
+
+            @if (standingSeat) {
+
+              <button
+                class="standing-button"
+                [disabled]="isReserving"
+                (click)="reserveSeat(standingSeat)"
+              >
+                Yer Seç
+              </button>
+
+            } @else {
+
+              <button
+                class="standing-button"
+                disabled
+              >
+                Dolu
+              </button>
+
+            }
+
+          </div>
+
+        </div>
+
+      }
+
+
+      <!-- ========================= -->
+      <!-- SATIN ALMA -->
+      <!-- ========================= -->
+
+      @if (selectedSeat) {
+
+        <div class="purchase-box">
+
+          <p>
+            <strong>
+
+              @if (
+                selectedSeat.blockType === 1 ||
+                selectedSeat.blockName === 'Ayakta Alan'
+              ) {
+
+                Ayakta Alan için yer rezerve edildi.
+
+              } @else {
+
+                {{ selectedSeat.seatId }}
+                numaralı koltuk rezerve edildi.
+
+              }
+
+            </strong>
+          </p>
+
+          <p>
+            Rezervasyonunuz 5 dakika geçerlidir.
+          </p>
+
+          <button
+            class="purchase-button"
+            (click)="purchaseSeat()"
+          >
+            Satın Al
+          </button>
+
+        </div>
+
+      }
+
+    }
+
+  </div>
+
+</div>

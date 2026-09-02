@@ -92,6 +92,26 @@ public class EventService : IEventService
             }
         };
     }
+     public async Task<List<EventSeat>> GetEventSeatsAsync(int eventId)
+        {
+            var seats = await _repository.GetEventSeatsAsync(eventId);
+
+            var now = DateTime.UtcNow;
+
+            foreach (var seat in seats)
+            {
+                if (seat.Status == EventSeatStatus.Reserved &&
+                    seat.ReservedUntil.HasValue &&
+                    seat.ReservedUntil.Value <= now)
+                {
+                    seat.Status = EventSeatStatus.Available;
+                    seat.ReservedUntil = null;
+                    seat.ReservedByUserId = null;
+                }
+            }
+
+            return seats;
+        }
 
     public async Task<Event> CreateAsync(Event newEvent)
     {

@@ -1,0 +1,209 @@
+<div class="admin-page">
+  <div class="admin-container">
+
+    <div class="admin-header">
+      <div>
+        <h1>Admin Paneli</h1>
+        <p>Etkinlik Yönetimi</p>
+      </div>
+
+      <a routerLink="/events" class="back-button">
+        Etkinliklere Dön
+      </a>
+    </div>
+
+    @if (errorMessage) {
+      <div class="error">{{ errorMessage }}</div>
+    }
+
+    @if (successMessage) {
+      <div class="success">{{ successMessage }}</div>
+    }
+
+    <div class="form-card">
+      <h2>
+        {{ editingId === null ? 'Yeni Etkinlik Ekle' : 'Etkinliği Düzenle' }}
+      </h2>
+
+      <form (ngSubmit)="saveEvent()">
+
+        <div class="form-group">
+          <label for="name">Etkinlik Adı</label>
+
+          <input
+            id="name"
+            type="text"
+            name="name"
+            [(ngModel)]="name"
+            placeholder="Etkinlik adı"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="date">Tarih</label>
+
+          <input
+            id="date"
+            type="datetime-local"
+            name="date"
+            [(ngModel)]="date"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="venueId">Salon ID</label>
+
+          <input
+            id="venueId"
+            type="number"
+            name="venueId"
+            [(ngModel)]="venueId"
+            (change)="loadVenueBlocks()"
+            placeholder="Salon ID"
+            min="1"
+            required
+          />
+        </div>
+
+        @if (venueBlocks.length > 0) {
+
+          <div class="prices-section">
+
+            <h3>Bilet Fiyatları</h3>
+
+            <p class="prices-description">
+              Her blok için ayrı bilet fiyatı belirleyin.
+            </p>
+
+            @for (block of venueBlocks; track block.id; let i = $index) {
+
+              <div class="form-group">
+
+                <label [for]="'price-' + block.id">
+                  {{ block.name }}
+                </label>
+
+                <div class="price-input">
+                  <input
+                    [id]="'price-' + block.id"
+                    type="number"
+                    [name]="'price-' + block.id"
+                    [(ngModel)]="blockPrices[i].price"
+                    min="0"
+                    step="0.01"
+                    placeholder="Bilet fiyatı"
+                    required
+                  />
+
+                  <span>TL</span>
+                </div>
+
+              </div>
+
+            }
+
+          </div>
+
+        }
+
+        <div class="form-actions">
+
+          <button
+            type="submit"
+            [disabled]="isSaving"
+          >
+            {{ editingId === null ? 'Etkinlik Ekle' : 'Güncelle' }}
+          </button>
+
+          @if (editingId !== null) {
+
+            <button
+              type="button"
+              class="cancel-button"
+              (click)="clearForm()"
+            >
+              İptal
+            </button>
+
+          }
+
+        </div>
+
+      </form>
+    </div>
+
+    <div class="events-card">
+
+      <h2>Mevcut Etkinlikler</h2>
+
+      @if (isLoading) {
+        <p>Etkinlikler yükleniyor...</p>
+      }
+
+      @if (!isLoading && events.length === 0) {
+        <p>Henüz etkinlik bulunmuyor.</p>
+      }
+
+      @for (event of events; track event.id) {
+
+        <div class="event-row">
+
+          <div class="event-info">
+
+            <h3>{{ event.name }}</h3>
+
+            <p>ID: {{ event.id }}</p>
+
+            <p>Salon: {{ event.venueId }}</p>
+
+            <p>
+              {{ event.eventDate | date:'dd.MM.yyyy HH:mm' }}
+            </p>
+
+            @if (event.blockPrices && event.blockPrices.length > 0) {
+
+              <div class="event-prices">
+
+                @for (price of event.blockPrices; track price.id) {
+
+                  <span>
+                    Blok {{ price.venueBlockId }}:
+                    {{ price.price }} TL
+                  </span>
+
+                }
+
+              </div>
+
+            }
+
+          </div>
+
+          <div class="event-actions">
+
+            <button
+              class="edit-button"
+              (click)="editEvent(event)"
+            >
+              Düzenle
+            </button>
+
+            <button
+              class="delete-button"
+              (click)="deleteEvent(event.id)"
+            >
+              Sil
+            </button>
+
+          </div>
+
+        </div>
+
+      }
+
+    </div>
+
+  </div>
+</div>

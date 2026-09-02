@@ -20,6 +20,8 @@ public interface IEventRepository
     Task<Venue?> GetVenueWithSeatsAsync(int venueId);
 
     Task<EventSeat?> GetEventSeatAsync(int eventId, int seatId);
+    
+    Task<List<EventSeat>> GetEventSeatsAsync(int eventId);
 
     Task UpdateEventSeatAsync(EventSeat eventSeat);
     Task DeleteAsync(Event eventItem);

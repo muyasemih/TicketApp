@@ -1,0 +1,51 @@
+<div class="detail-page">
+
+  @if (isLoading) {
+    <p class="loading">Etkinlik yükleniyor...</p>
+  }
+
+  @if (errorMessage) {
+    <p class="error">{{ errorMessage }}</p>
+  }
+
+  @if (event) {
+    <div class="detail-card">
+
+      <a routerLink="/events" class="back-link">
+        ← Etkinliklere Dön
+      </a>
+
+      <h1>{{ event.name }}</h1>
+
+      <div class="info">
+        <p>📅 {{ event.date }}</p>
+        <p>📍 Salon #{{ event.venueId }}</p>
+      </div>
+
+      <div class="prices">
+        <h2>Bilet Fiyatları</h2>
+
+        @if (displayPrices.length > 0) {
+          @for (block of displayPrices; track block.blockName) {
+            <div class="price-row">
+              <span>{{ block.blockName }}</span>
+              <strong>{{ block.price }} TL</strong>
+            </div>
+          }
+        } @else {
+          <p>Fiyat bilgisi bulunamadı.</p>  
+        } 
+
+      </div>
+
+      <button
+        class="seat-button"
+        [routerLink]="['/events', event.id, 'seats']"
+      >
+        Koltukları Gör
+      </button>
+
+    </div>
+  }
+
+</div>

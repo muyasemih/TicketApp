@@ -1,0 +1,92 @@
+<div class="orders-page">
+
+  <header class="page-header">
+    <div>
+      <h1>TicketApp</h1>
+      <p>Biletlerim</p>
+    </div>
+
+    <a routerLink="/events" class="events-link">
+      Etkinliklere Dön
+    </a>
+  </header>
+
+  <main class="orders-container">
+
+    <h2>Siparişlerim</h2>
+
+    @if (isLoading) {
+      <p class="loading">Siparişler yükleniyor...</p>
+    }
+
+    @if (errorMessage) {
+      <p class="error">{{ errorMessage }}</p>
+    }
+
+    @if (!isLoading && !errorMessage && orders.length === 0) {
+      <div class="empty">
+        <p>Henüz bir siparişiniz bulunmuyor.</p>
+
+        <a routerLink="/events">
+          Etkinliklere Göz At
+        </a>
+      </div>
+    }
+
+    @if (!isLoading && !errorMessage && orders.length > 0) {
+
+      @for (order of orders; track order.id) {
+
+        <div class="order-card">
+
+          <div class="order-header">
+            <div>
+              <h3>Sipariş #{{ order.id }}</h3>
+              <p>
+                {{ order.createdAt | date:'dd.MM.yyyy HH:mm' }}
+              </p>
+            </div>
+
+            <strong>
+              {{ order.totalAmount | currency:'TRY':'symbol':'1.2-2' }}
+            </strong>
+          </div>
+
+          <div class="tickets">
+
+            @for (item of order.items; track item.id) {
+
+              <div class="ticket">
+
+                <div>
+                  <span class="ticket-label">Bilet</span>
+                  <strong>{{ item.ticketNumber }}</strong>
+                </div>
+
+                <div>
+                  <span class="ticket-label">Koltuk</span>
+                  <strong>#{{ item.eventSeatId }}</strong>
+                </div>
+
+                <div>
+                  <span class="ticket-label">Fiyat</span>
+                  <strong>
+                    {{ item.price | currency:'TRY':'symbol':'1.2-2' }}
+                  </strong>
+                </div>
+
+              </div>
+
+            }
+
+          </div>
+
+        </div>
+
+      }
+
+    }
+
+  </main>
+
+</div>

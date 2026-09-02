@@ -35,6 +35,24 @@ public class EventsController : ControllerBase
 
         return Ok(eventItem);
     }
+    [HttpGet("{eventId}/seats")]
+    public async Task<IActionResult> GetEventSeats(int eventId)
+    {
+        var seats = await _service.GetEventSeatsAsync(eventId);
+
+        var result = seats.Select(seat => new
+        {
+            id = seat.Id,
+            eventId = seat.EventId,
+            seatId = seat.SeatId,
+            status = seat.Status,
+            reservedUntil = seat.ReservedUntil,
+
+            venueBlockId = seat.Seat?.VenueBlockId
+        });
+
+        return Ok(result);
+    }
 
     [Authorize(Roles = "Admin")]
     [HttpPost]
