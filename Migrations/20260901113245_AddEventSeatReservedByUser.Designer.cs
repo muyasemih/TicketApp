@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace TicketApp.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260901113245_AddEventSeatReservedByUser")]
+    partial class AddEventSeatReservedByUser
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -91,12 +94,6 @@ namespace TicketApp.Migrations
                     b.Property<DateTime?>("ReservedUntil")
                         .HasColumnType("datetime2");
 
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
                     b.Property<int>("SeatId")
                         .HasColumnType("int");
 
@@ -113,58 +110,6 @@ namespace TicketApp.Migrations
                         .IsUnique();
 
                     b.ToTable("EventSeats");
-                });
-
-            modelBuilder.Entity("TicketApp.Models.Order", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("TotalAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("Orders");
-                });
-
-            modelBuilder.Entity("TicketApp.Models.OrderItem", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("EventSeatId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("OrderId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("Price")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EventSeatId");
-
-                    b.HasIndex("OrderId");
-
-                    b.ToTable("OrderItems");
                 });
 
             modelBuilder.Entity("TicketApp.Models.Seat", b =>
@@ -192,35 +137,6 @@ namespace TicketApp.Migrations
                     b.ToTable("Seats");
                 });
 
-            modelBuilder.Entity("TicketApp.Models.Ticket", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("OrderItemId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("TicketNumber")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OrderItemId")
-                        .IsUnique();
-
-                    b.HasIndex("TicketNumber")
-                        .IsUnique();
-
-                    b.ToTable("Tickets");
-                });
-
             modelBuilder.Entity("TicketApp.Models.User", b =>
                 {
                     b.Property<int>("Id")
@@ -233,9 +149,6 @@ namespace TicketApp.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<bool>("IsStudent")
-                        .HasColumnType("bit");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -243,12 +156,6 @@ namespace TicketApp.Migrations
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Role")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("nvarchar(max)")
-                        .HasDefaultValue("User");
 
                     b.HasKey("Id");
 
@@ -364,36 +271,6 @@ namespace TicketApp.Migrations
                     b.Navigation("Seat");
                 });
 
-            modelBuilder.Entity("TicketApp.Models.Order", b =>
-                {
-                    b.HasOne("TicketApp.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("TicketApp.Models.OrderItem", b =>
-                {
-                    b.HasOne("TicketApp.Models.EventSeat", "EventSeat")
-                        .WithMany()
-                        .HasForeignKey("EventSeatId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("TicketApp.Models.Order", "Order")
-                        .WithMany("Items")
-                        .HasForeignKey("OrderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("EventSeat");
-
-                    b.Navigation("Order");
-                });
-
             modelBuilder.Entity("TicketApp.Models.Seat", b =>
                 {
                     b.HasOne("TicketApp.Models.VenueBlock", "VenueBlock")
@@ -403,17 +280,6 @@ namespace TicketApp.Migrations
                         .IsRequired();
 
                     b.Navigation("VenueBlock");
-                });
-
-            modelBuilder.Entity("TicketApp.Models.Ticket", b =>
-                {
-                    b.HasOne("TicketApp.Models.OrderItem", "OrderItem")
-                        .WithOne("Ticket")
-                        .HasForeignKey("TicketApp.Models.Ticket", "OrderItemId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("OrderItem");
                 });
 
             modelBuilder.Entity("TicketApp.Models.VenueBlock", b =>
@@ -430,16 +296,6 @@ namespace TicketApp.Migrations
             modelBuilder.Entity("TicketApp.Models.Event", b =>
                 {
                     b.Navigation("BlockPrices");
-                });
-
-            modelBuilder.Entity("TicketApp.Models.Order", b =>
-                {
-                    b.Navigation("Items");
-                });
-
-            modelBuilder.Entity("TicketApp.Models.OrderItem", b =>
-                {
-                    b.Navigation("Ticket");
                 });
 
             modelBuilder.Entity("TicketApp.Models.Venue", b =>

@@ -13,6 +13,10 @@ public interface IEventRepository
     Task AddEventSeatsAsync(List<EventSeat> eventSeats);
 
     Task UpdateAsync(Event eventItem);
+    Task UpdateEventBlockPricesAsync(
+    int eventId,
+    List<EventBlockPrice> blockPrices);
+    
     Task<Venue?> GetVenueWithSeatsAsync(int venueId);
 
     Task<EventSeat?> GetEventSeatAsync(int eventId, int seatId);

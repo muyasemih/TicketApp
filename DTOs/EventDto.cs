@@ -6,11 +6,11 @@ public class EventDto
 
     public string Name { get; set; } = string.Empty;
 
-    public decimal Price { get; set; }
-
     public DateTime EventDate { get; set; }
 
     public int? VenueId { get; set; }
 
     public VenueDto? Venue { get; set; }
+
+    public List<EventBlockPriceDto> BlockPrices { get; set; } = new();
 }

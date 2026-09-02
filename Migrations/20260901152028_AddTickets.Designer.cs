@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace TicketApp.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260901152028_AddTickets")]
+    partial class AddTickets
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -212,8 +215,7 @@ namespace TicketApp.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("OrderItemId")
-                        .IsUnique();
+                    b.HasIndex("OrderItemId");
 
                     b.HasIndex("TicketNumber")
                         .IsUnique();
@@ -233,9 +235,6 @@ namespace TicketApp.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<bool>("IsStudent")
-                        .HasColumnType("bit");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -243,12 +242,6 @@ namespace TicketApp.Migrations
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Role")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("nvarchar(max)")
-                        .HasDefaultValue("User");
 
                     b.HasKey("Id");
 
@@ -408,8 +401,8 @@ namespace TicketApp.Migrations
             modelBuilder.Entity("TicketApp.Models.Ticket", b =>
                 {
                     b.HasOne("TicketApp.Models.OrderItem", "OrderItem")
-                        .WithOne("Ticket")
-                        .HasForeignKey("TicketApp.Models.Ticket", "OrderItemId")
+                        .WithMany()
+                        .HasForeignKey("OrderItemId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -435,11 +428,6 @@ namespace TicketApp.Migrations
             modelBuilder.Entity("TicketApp.Models.Order", b =>
                 {
                     b.Navigation("Items");
-                });
-
-            modelBuilder.Entity("TicketApp.Models.OrderItem", b =>
-                {
-                    b.Navigation("Ticket");
                 });
 
             modelBuilder.Entity("TicketApp.Models.Venue", b =>

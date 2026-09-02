@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using TicketApp.Models;
 using TicketApp.Services;
 using TicketApp.DTOs;
+using Microsoft.AspNetCore.Authorization;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -35,16 +36,25 @@ public class EventsController : ControllerBase
         return Ok(eventItem);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<IActionResult> CreateEvent(CreateEventDto newEvent)
     {
         var eventItem = new Event
         {
             Name = newEvent.Name,
-            Price = newEvent.Price,
             EventDate = newEvent.EventDate!.Value,
             VenueId = newEvent.VenueId
         };
+
+        foreach (var block in newEvent.Blocks)
+        {
+            eventItem.BlockPrices.Add(new EventBlockPrice
+            {
+                VenueBlockId = block.VenueBlockId,
+                Price = block.Price
+            });
+        }
 
         await _service.CreateAsync(eventItem);
 
@@ -55,6 +65,7 @@ public class EventsController : ControllerBase
         );
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateEvent(
         int id,
@@ -63,10 +74,18 @@ public class EventsController : ControllerBase
         var eventItem = new Event
         {
             Name = updatedEvent.Name,
-            Price = updatedEvent.Price,
             EventDate = updatedEvent.EventDate!.Value,
             VenueId = updatedEvent.VenueId
         };
+
+        foreach (var block in updatedEvent.Blocks)
+        {
+            eventItem.BlockPrices.Add(new EventBlockPrice
+            {
+                VenueBlockId = block.VenueBlockId,
+                Price = block.Price
+            });
+        }
 
         var result = await _service.UpdateAsync(id, eventItem);
 
@@ -78,6 +97,7 @@ public class EventsController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteEvent(int id)
     {
@@ -92,6 +112,8 @@ public class EventsController : ControllerBase
 
         return NoContent();
     }
+
+    [Authorize]
     [HttpPost("{eventId}/seats/{seatId}/reserve")]
     public async Task<IActionResult> ReserveSeat(int eventId, int seatId)
     {
@@ -107,6 +129,7 @@ public class EventsController : ControllerBase
 
         return Ok(eventSeat);
     }
+
     [HttpPost("{eventId}/seats/{seatId}/sell")]
     public async Task<IActionResult> SellSeat(int eventId, int seatId)
     {
