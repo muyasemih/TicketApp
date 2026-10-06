@@ -1,3 +1,5 @@
+[![Build and Verify](https://github.com/muyasemih/TicketApp/actions/workflows/ci.yml/badge.svg)](https://github.com/muyasemih/TicketApp/actions/workflows/ci.yml)
+
 # TicketApp
 
 ## Proje Hakkında
