@@ -15,6 +15,10 @@ Uygulama üzerinden etkinlikler oluşturulabilir, listelenebilir, ID üzerinden 
 - Docker
 - Git / GitHub
 
+### Öğrenci İndirimi
+
+Öğrenci kullanıcılar için bilet fiyatlarına %10 indirim uygulanır. İndirim sipariş oluşturulurken sunucu tarafında hesaplanır; istemciden gönderilen fiyatlara güvenilmez.
+
 ## Proje Mimarisi
 
 Controller → Repository → AppDbContext → Entity Framework Core → SQL Server

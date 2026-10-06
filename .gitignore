@@ -1,4 +1,22 @@
+## .NET
 bin/
 obj/
-.vscode/
+*.user
+*.suo
+appsettings.Development.json
+
+## Angular / Node
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+node_modules/
+dist/
+.angular/
+npm-debug.log
+yarn-error.log
+
+## OS / Mac
 .DS_Store
+.vscode/
+.idea/
+*.log

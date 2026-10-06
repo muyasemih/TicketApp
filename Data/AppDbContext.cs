@@ -98,6 +98,10 @@ public class AppDbContext : DbContext
             .Property(u => u.Role)
             .HasDefaultValue("User");
 
+        modelBuilder.Entity<User>()
+            .Property(u => u.IsStudent)
+            .HasDefaultValue(false);
+
         modelBuilder.Entity<Order>()
             .HasOne(o => o.User)
             .WithMany()

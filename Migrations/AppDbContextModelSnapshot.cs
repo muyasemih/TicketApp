@@ -234,7 +234,9 @@ namespace TicketApp.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<bool>("IsStudent")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("Name")
                         .IsRequired()

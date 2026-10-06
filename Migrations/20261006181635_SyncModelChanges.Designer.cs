@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace TicketApp.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260902094542_FixUserStudentStatus")]
-    partial class FixUserStudentStatus
+    [Migration("20261006181635_SyncModelChanges")]
+    partial class SyncModelChanges
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -237,7 +237,9 @@ namespace TicketApp.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<bool>("IsStudent")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("Name")
                         .IsRequired()

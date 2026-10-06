@@ -37,27 +37,25 @@ public class UserService : IUserService
         }
 
         var user = new User
-            {
-                Name = newUser.Name.Trim(),
-                Email = email,
-                IsStudent = newUser.IsStudent
-            };
+        {
+            Name = newUser.Name.Trim(),
+            Email = email,
+            IsStudent = newUser.IsStudent
+        };
 
         user.PasswordHash = _passwordHasher.HashPassword(
             user,
             newUser.Password);
 
-            await _repository.CreateAsync(user);
+        await _repository.CreateAsync(user);
 
-            var createdUser = await _repository.GetByEmailAsync(email);
-
-            return new UserDto
-            {
-                Id = createdUser!.Id,
-                Name = createdUser.Name,
-                Email = createdUser.Email,
-                IsStudent = createdUser.IsStudent
-            };
+        return new UserDto
+        {
+            Id = user.Id,
+            Name = user.Name,
+            Email = user.Email,
+            IsStudent = user.IsStudent
+        };
     }
 
     public async Task<LoginResponseDto?> LoginAsync(LoginUserDto loginUser)
@@ -86,12 +84,12 @@ public class UserService : IUserService
         return new LoginResponseDto
         {
             Token = token,
-          User = new UserDto
+            User = new UserDto
             {
                 Id = user.Id,
                 Name = user.Name,
                 Email = user.Email,
-                IsStudent = user.IsStudent
+            IsStudent = user.IsStudent
             }
         };
     }

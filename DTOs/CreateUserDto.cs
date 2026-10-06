@@ -15,5 +15,5 @@ public class CreateUserDto
     [MinLength(6)]
     public string Password { get; set; } = string.Empty;
 
-    public bool IsStudent { get; set; } = false;
+    public bool IsStudent { get; set; }
 }

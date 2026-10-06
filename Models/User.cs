@@ -9,8 +9,8 @@ public class User
     public string Email { get; set; } = string.Empty;
 
     public string PasswordHash { get; set; } = string.Empty;
-    
-    public bool IsStudent { get; set; } = false;
 
     public string Role { get; set; } = "User";
+
+    public bool IsStudent { get; set; }
 }

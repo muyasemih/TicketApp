@@ -78,11 +78,14 @@ public class VenueService : IVenueService
     }
 
     private void GenerateSeats(Venue venue)
-{
-    foreach (var block in venue.Blocks)
     {
-        if (block.Type == VenueBlockType.Seated)
+        foreach (var block in venue.Blocks)
         {
+            if (block.Type != VenueBlockType.Seated)
+            {
+                continue;
+            }
+
             block.Capacity = block.RowCount * block.SeatsPerRow;
 
             block.Seats = new List<Seat>();
@@ -99,19 +102,5 @@ public class VenueService : IVenueService
                 }
             }
         }
-        else if (block.Type == VenueBlockType.Standing)
-        {
-            block.Seats = new List<Seat>();
-
-            for (int i = 1; i <= block.Capacity; i++)
-            {
-                block.Seats.Add(new Seat
-                {
-                    RowNumber = 0,
-                    SeatNumber = i
-                });
-            }
-        }
-    }
     }
 }

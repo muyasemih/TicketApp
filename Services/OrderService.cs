@@ -22,14 +22,7 @@ public class OrderService : IOrderService
     public async Task<OrderDto?> CreateAsync(
         int userId,
         CreateOrderDto newOrder)
-        
     {
-        var user = await _db.Users.FindAsync(userId);
-
-            if (user == null)
-            {
-                return null;
-            }
         var eventSeats = await _orderRepository.GetEventSeatsAsync(
             newOrder.EventId,
             newOrder.EventSeatIds);
@@ -60,6 +53,15 @@ public class OrderService : IOrderService
             }
         }
 
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (user == null)
+        {
+            return null;
+        }
+
+        const decimal studentDiscountRate = 0.10m;
+
         var blockPrices = await _db.EventBlockPrices
             .Where(bp =>
                 bp.EventId == newOrder.EventId &&
@@ -83,21 +85,17 @@ public class OrderService : IOrderService
             orderItems.Add(new OrderItem
             {
                 EventSeatId = eventSeat.Id,
-                Price = blockPrice.Price
+                Price = user.IsStudent
+                    ? Math.Round(blockPrice.Price * (1 - studentDiscountRate), 2)
+                    : blockPrice.Price
             });
         }
 
-        var totalAmount = orderItems.Sum(item => item.Price);
-
-            if (user.IsStudent)
-            {
-                totalAmount *= 0.90m;
-            }
         var order = new Order
         {
             UserId = userId,
             CreatedAt = now,
-            TotalAmount = totalAmount,
+            TotalAmount = orderItems.Sum(item => item.Price),
             Items = orderItems
         };
 
