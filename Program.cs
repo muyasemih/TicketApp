@@ -6,6 +6,7 @@ using TicketApp.Models;
 using TicketApp.Repositories;
 using TicketApp.Services;
 using TicketApp.Middleware;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -80,6 +81,7 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.MapScalarApiReference();
 }
 
 app.UseHttpsRedirection();
