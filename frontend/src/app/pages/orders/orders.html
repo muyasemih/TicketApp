@@ -56,7 +56,7 @@
 
             @for (item of order.items; track item.id) {
 
-              <div class="ticket">
+              <div class="ticket" [class.ticket-cancelled]="item.status === 'Cancelled'">
 
                 <div>
                   <span class="ticket-label">Bilet</span>
@@ -73,6 +73,21 @@
                   <strong>
                     {{ item.price | currency:'TRY':'symbol':'1.2-2' }}
                   </strong>
+                </div>
+
+                <div class="ticket-actions">
+                  @if (item.status === 'Cancelled') {
+                    <span class="badge badge-cancelled">
+                      İptal Edildi
+                    </span>
+                    @if (item.cancelledAt) {
+                      <small class="cancel-date">{{ item.cancelledAt | date:'dd.MM.yyyy HH:mm' }}</small>
+                    }
+                  } @else {
+                    <button type="button" class="btn-cancel" (click)="cancelTicket(item.ticketId)">
+                      Bileti İptal Et
+                    </button>
+                  }
                 </div>
 
               </div>

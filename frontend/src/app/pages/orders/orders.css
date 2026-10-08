@@ -113,3 +113,50 @@
   text-decoration: none;
   font-weight: 600;
 }
+.ticket-cancelled {
+  opacity: 0.75;
+  background-color: #f8f9fa;
+  border-left: 4px solid #dc3545;
+}
+
+.ticket-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4px;
+}
+
+.badge {
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.badge-cancelled {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.cancel-date {
+  font-size: 0.7rem;
+  color: #6b7280;
+}
+
+.btn-cancel {
+  background-color: #ef4444;
+  color: #fff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-cancel:hover {
+  background-color: #dc2626;
+}

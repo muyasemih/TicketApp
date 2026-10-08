@@ -40,6 +40,15 @@ public class EventRepository : IEventRepository
             .FirstOrDefaultAsync(v => v.Id == venueId);
     }
 
+    public async Task<List<EventSeat>> GetEventSeatsAsync(int eventId)
+    {
+        return await _db.EventSeats
+            .Include(es => es.Seat)
+                .ThenInclude(s => s.VenueBlock)
+            .Where(es => es.EventId == eventId)
+            .ToListAsync();
+    }
+
     public async Task AddAsync(Event newEvent)
     {
         _db.Events.Add(newEvent);
@@ -63,7 +72,6 @@ public class EventRepository : IEventRepository
     public async Task UpdateEventSeatAsync(EventSeat eventSeat)
     {
         _db.EventSeats.Update(eventSeat);
-
         await _db.SaveChangesAsync();
     }
 
@@ -90,7 +98,6 @@ public class EventRepository : IEventRepository
     public async Task UpdateAsync(Event eventItem)
     {
         _db.Events.Update(eventItem);
-
         await _db.SaveChangesAsync();
     }
 

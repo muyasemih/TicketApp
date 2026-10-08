@@ -93,6 +93,11 @@ public class EventService : IEventService
         };
     }
 
+    public async Task<List<EventSeat>> GetSeatsByEventIdAsync(int eventId)
+    {
+        return await _repository.GetEventSeatsAsync(eventId);
+    }
+
     public async Task<Event> CreateAsync(Event newEvent)
     {
         if (newEvent.VenueId.HasValue)

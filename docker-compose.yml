@@ -19,6 +19,7 @@ services:
     ports:
       - "5040:5040"
     environment:
+      - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Server=sqlserver,1433;Database=TicketAppDb;User Id=sa;Password=SuperSecretPass123!;TrustServerCertificate=True;
     depends_on:
       - sqlserver

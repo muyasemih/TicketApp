@@ -35,7 +35,34 @@ public class EventsController : ControllerBase
 
         return Ok(eventItem);
     }
+    
+    [HttpGet("{id}/seats")]
+    public async Task<IActionResult> GetEventSeats(int id)
+    {
+        var seats = await _service.GetSeatsByEventIdAsync(id);
 
+        var result = seats.Select(es => new
+        {
+            id = es.Id,
+            eventId = es.EventId,
+            seatId = es.SeatId,
+            status = es.Status.ToString(),
+            reservedUntil = es.ReservedUntil,
+            seat = es.Seat != null ? new
+            {
+                id = es.Seat.Id,
+                rowNumber = es.Seat.RowNumber,
+                seatNumber = es.Seat.SeatNumber,
+                number = es.Seat.SeatNumber,
+                venueBlockId = es.Seat.VenueBlockId
+            } : null,
+            blockId = es.Seat?.VenueBlockId ?? 0,
+            blockName = es.Seat?.VenueBlock?.Name ?? "",
+            blockType = (int)(es.Seat?.VenueBlock?.Type ?? 0)
+        });
+
+        return Ok(result);
+    }
     [Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<IActionResult> CreateEvent(CreateEventDto newEvent)

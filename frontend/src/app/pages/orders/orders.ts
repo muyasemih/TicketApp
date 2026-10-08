@@ -9,6 +9,8 @@ interface OrderItem {
   price: number;
   ticketId: number;
   ticketNumber: string;
+  status: 'Active' | 'Cancelled';
+  cancelledAt?: string | null;
 }
 
 interface Order {
@@ -54,8 +56,6 @@ export class Orders {
       .get<Order[]>('http://localhost:5040/api/orders', { headers })
       .subscribe({
         next: (response) => {
-          console.log('Siparişler:', response);
-
           this.orders = response;
           this.isLoading = false;
           this.cdr.detectChanges();
@@ -64,14 +64,38 @@ export class Orders {
           console.error('Sipariş API hatası:', error);
 
           if (error.status === 401) {
-            this.errorMessage =
-              'Oturumunuz geçersiz. Lütfen tekrar giriş yapın.';
+            this.errorMessage = 'Oturumunuz geçersiz. Lütfen tekrar giriş yapın.';
           } else {
             this.errorMessage = 'Siparişler yüklenemedi.';
           }
 
           this.isLoading = false;
           this.cdr.detectChanges();
+        }
+      });
+  }
+
+  cancelTicket(ticketId: number) {
+    if (!ticketId) return;
+
+    const confirmed = confirm('Bu bileti iptal etmek istediğinize emin misiniz? Koltuk tekrar satışa açılacaktır.');
+    if (!confirmed) return;
+
+    const token = localStorage.getItem('token');
+    const headers = new HttpHeaders({
+      Authorization: `Bearer ${token}`
+    });
+
+    this.http
+      .post<{ message: string }>(`http://localhost:5040/api/orders/tickets/${ticketId}/cancel`, {}, { headers })
+      .subscribe({
+        next: (res) => {
+          alert(res.message || 'Bilet başarıyla iptal edildi.');
+          this.loadOrders(); // Listeyi anlık güncelle
+        },
+        error: (err) => {
+          const msg = err.error?.message || 'Bilet iptal edilirken bir hata oluştu.';
+          alert(msg);
         }
       });
   }

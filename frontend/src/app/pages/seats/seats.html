@@ -46,31 +46,21 @@
       <!-- ========================= -->
 
       <div class="seated-area">
-
         <h2>A Blok</h2>
-
         <div class="seats-grid">
-
-        @for (seat of seats; track seat.id) {
-        @if (seat.blockName !== 'Ayakta Alan' && seat.blockType !== 1) {
-
-              <button
-                class="seat"
-                [class.free]="seat.status === 'Available'"
-                [class.reserved]="seat.status === 'Reserved'"
-                [class.sold]="seat.status === 'Sold'"
-                [disabled]="seat.status !== 'Available'"
-                (click)="reserveSeat(seat)"
-              >
-                {{ seat.seatId }}
-              </button>
-
-            }
-
+          @for (seat of numberedSeats; track seat.id) {
+            <button
+            class="seat"
+            [class.free]="seat.status === 'Available'"
+            [class.reserved]="seat.status === 'Reserved'"
+            [class.sold]="seat.status === 'Sold'"
+            [disabled]="seat.status !== 'Available'"
+            (click)="reserveSeat(seat)"
+          >
+            {{ seat.seatId }}
+          </button>
           }
-
         </div>
-
       </div>
 
 
@@ -95,9 +85,9 @@
             </p>
 
             <p class="standing-capacity">
-              Kalan:
-              <strong>{{ standingAvailableCount }}</strong>
-              / 100 kişi
+            Kalan:
+            <strong>{{ standingAvailableCount }}</strong>
+            / {{ standingTotalCount }} kişi
             </p>
 
             @if (standingSeat) {

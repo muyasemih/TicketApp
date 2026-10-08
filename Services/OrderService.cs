@@ -181,8 +181,71 @@ public class OrderService : IOrderService
                 EventSeatId = item.EventSeatId,
                 Price = item.Price,
                 TicketId = item.Ticket?.Id ?? 0,
-                TicketNumber = item.Ticket?.TicketNumber ?? string.Empty
+                TicketNumber = item.Ticket?.TicketNumber ?? string.Empty,
+                Status = item.Ticket?.Status.ToString() ?? "Active",
+                CancelledAt = item.Ticket?.CancelledAt
             }).ToList()
         }).ToList();
+    }
+    public async Task<(bool Success, string Message)> CancelTicketAsync(int ticketId, int userId, bool isAdmin = false)
+    {
+        var ticket = await _db.Tickets
+            .Include(t => t.OrderItem)
+                .ThenInclude(oi => oi.Order)
+            .Include(t => t.OrderItem)
+                .ThenInclude(oi => oi.EventSeat)
+                    .ThenInclude(es => es.Event)
+            .FirstOrDefaultAsync(t => t.Id == ticketId);
+
+        if (ticket == null)
+        {
+            return (false, "Bilet bulunamadı.");
+        }
+
+        if (!isAdmin && ticket.OrderItem.Order.UserId != userId)
+        {
+            return (false, "Bu bileti iptal etme yetkiniz yok.");
+        }
+
+        if (ticket.Status == TicketStatus.Cancelled)
+        {
+            return (false, "Bu bilet zaten iptal edilmiş.");
+        }
+
+        var eventDate = ticket.OrderItem.EventSeat.Event.EventDate;
+        var now = DateTime.UtcNow;
+
+        if (eventDate <= now)
+        {
+            return (false, "Geçmiş etkinlikler için bilet iptali yapılamaz.");
+        }
+
+        if (eventDate - now < TimeSpan.FromHours(2))
+        {
+            return (false, "Etkinliğin başlamasına 2 saatten az bir süre kaldığı için bilet iptal edilemez.");
+        }
+
+        await using var transaction = await _db.Database.BeginTransactionAsync();
+
+        try
+        {
+            ticket.Status = TicketStatus.Cancelled;
+            ticket.CancelledAt = now;
+
+            var eventSeat = ticket.OrderItem.EventSeat;
+            eventSeat.Status = EventSeatStatus.Available;
+            eventSeat.ReservedUntil = null;
+            eventSeat.ReservedByUserId = null;
+
+            await _db.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return (true, "Bilet başarıyla iptal edildi ve koltuk tekrar satışa açıldı.");
+        }
+        catch (Exception)
+        {
+            await transaction.RollbackAsync();
+            return (false, "İptal işlemi sırasında bir hata oluştu.");
+        }
     }
 }

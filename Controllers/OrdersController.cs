@@ -41,6 +41,26 @@ public class OrdersController : ControllerBase
 
         return Ok(order);
     }
+    [HttpPost("tickets/{ticketId:int}/cancel")]
+    public async Task<IActionResult> CancelTicket(int ticketId)
+    {
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var isAdmin = User.IsInRole("Admin");
+
+        var result = await _service.CancelTicketAsync(ticketId, userId, isAdmin);
+
+        if (!result.Success)
+        {
+            return BadRequest(new { message = result.Message });
+        }
+
+        return Ok(new { message = result.Message });
+    }
 
     [HttpGet]
     public async Task<IActionResult> GetMyOrders()

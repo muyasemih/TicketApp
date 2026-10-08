@@ -9,7 +9,6 @@ interface Seat {
   status: string;
   reservedUntil: string | null;
 
-  // Asıl Seat nesnesi backend'den geliyor.
   seat?: {
     id: number;
     rowNumber: number;
@@ -48,6 +47,7 @@ export class Seats {
   private cdr = inject(ChangeDetectorRef);
 
   seats: Seat[] = [];
+  numberedSeats: Seat[] = [];
 
   isLoading = true;
   isReserving = false;
@@ -57,6 +57,7 @@ export class Seats {
 
   standingSeat: Seat | null = null;
   standingAvailableCount = 0;
+  standingTotalCount = 0;
   hasStanding = false;
 
   ngOnInit() {
@@ -103,97 +104,86 @@ export class Seats {
 
           if (!venue) {
             this.seats = eventSeats;
-
-            this.prepareStandingArea();
+            this.updateSeatLists();
 
             this.isLoading = false;
             this.cdr.detectChanges();
-
             return;
           }
 
-          // Blokları ID üzerinden hızlıca bulabileceğimiz Map oluşturuyoruz.
           const blockMap = new Map<number, VenueBlock>();
 
           for (const block of venue.blocks ?? []) {
             blockMap.set(block.id, block);
           }
 
-          /*
-           * ÖNEMLİ:
-           *
-           * Daha önce venue.blocks[].seats üzerinden eşleştirme yapıyorduk.
-           * Bu yüzden koltukların blok bilgisi bulunamıyordu ve hepsi
-           * A Blok gibi görünüyordu.
-           *
-           * Şimdi doğrudan EventSeat içerisindeki:
-           * seat.venueBlockId
-           *
-           * değerini kullanıyoruz.
-           */
           this.seats = eventSeats.map(seat => {
             const venueBlockId =
+              seat.blockId ??
+              seat.seat?.venueBlockId ??
               (seat as any).venueBlockId;
 
             const block = blockMap.get(venueBlockId);
 
             return {
               ...seat,
-
-              blockId: block?.id ?? 0,
-              blockName: block?.name ?? 'Bilinmeyen Blok',
-              blockType: block?.type ?? 0
+              blockId: seat.blockId ?? block?.id ?? 0,
+              blockName: seat.blockName || block?.name || 'Bilinmeyen Blok',
+              blockType: seat.blockType ?? block?.type ?? 0
             };
           });
 
-          console.log(
-            'Blok bilgileri eklenmiş koltuklar:',
-            this.seats
-          );
+          console.log('Blok bilgileri eklenmiş koltuklar:', this.seats);
 
-          this.prepareStandingArea();
+          this.updateSeatLists();
 
           this.isLoading = false;
-
           this.cdr.detectChanges();
         },
 
         error: (error) => {
-          console.error(
-            'Etkinlik bilgileri yüklenemedi:',
-            error
-          );
+          console.error('Etkinlik bilgileri yüklenemedi:', error);
 
           this.seats = eventSeats;
-
-          this.prepareStandingArea();
+          this.updateSeatLists();
 
           this.isLoading = false;
-
           this.cdr.detectChanges();
         }
       });
   }
 
-  prepareStandingArea() {
-    const standingSeats = this.seats.filter(
+  updateSeatLists() {
+    this.numberedSeats = this.seats.filter(
       seat =>
-        seat.blockType === 1 ||
-        seat.blockName === 'Ayakta Alan'
+        seat.blockType !== 1 &&
+        seat.blockName !== 'Ayakta Alan' &&
+        (seat.seat?.rowNumber ?? 1) > 0
     );
 
-    this.hasStanding = standingSeats.length > 0;
+    this.prepareStandingArea();
+  }
 
-    this.standingAvailableCount =
-      standingSeats.filter(
+    prepareStandingArea() {
+      const standingSeats = this.seats.filter(
+        seat =>
+          seat.blockType === 1 ||
+          seat.blockName === 'Ayakta Alan' ||
+          (seat.seat?.rowNumber ?? 1) === 0
+      );
+
+      this.hasStanding = standingSeats.length > 0;
+      this.standingTotalCount = standingSeats.length;
+
+      this.standingAvailableCount = standingSeats.filter(
         seat => seat.status === 'Available'
       ).length;
 
-    this.standingSeat =
-      standingSeats.find(
-        seat => seat.status === 'Available'
-      ) ?? null;
-  }
+      this.standingSeat =
+        standingSeats.find(
+          seat => seat.status === 'Available'
+        ) ?? null;
+    }
 
   reserveSeat(seat: Seat) {
     if (
@@ -203,8 +193,7 @@ export class Seats {
       return;
     }
 
-    const eventId =
-      this.route.snapshot.paramMap.get('id');
+    const eventId = this.route.snapshot.paramMap.get('id');
 
     if (!eventId) {
       this.errorMessage = 'Etkinlik bulunamadı.';
@@ -214,8 +203,7 @@ export class Seats {
     const token = localStorage.getItem('token');
 
     if (!token) {
-      this.errorMessage =
-        'Rezervasyon yapmak için giriş yapmalısınız.';
+      this.errorMessage = 'Rezervasyon yapmak için giriş yapmalısınız.';
       return;
     }
 
@@ -234,39 +222,27 @@ export class Seats {
       )
       .subscribe({
         next: (response) => {
-          console.log(
-            'Rezervasyon başarılı:',
-            response
-          );
+          console.log('Rezervasyon başarılı:', response);
 
           seat.status = 'Reserved';
-
           this.selectedSeat = seat;
-
           this.isReserving = false;
 
-          this.prepareStandingArea();
-
+          this.updateSeatLists();
           this.cdr.detectChanges();
         },
 
         error: (error) => {
-          console.error(
-            'Rezervasyon hatası:',
-            error
-          );
+          console.error('Rezervasyon hatası:', error);
 
           this.isReserving = false;
 
           if (error.status === 401) {
-            this.errorMessage =
-              'Oturumunuz geçersiz. Lütfen tekrar giriş yapın.';
+            this.errorMessage = 'Oturumunuz geçersiz. Lütfen tekrar giriş yapın.';
           } else if (error.status === 400) {
-            this.errorMessage =
-              'Bu koltuk artık müsait değil veya rezerve edilemedi.';
+            this.errorMessage = 'Bu koltuk artık müsait değil veya rezerve edilemedi.';
           } else {
-            this.errorMessage =
-              'Rezervasyon sırasında bir hata oluştu.';
+            this.errorMessage = 'Rezervasyon sırasında bir hata oluştu.';
           }
 
           this.cdr.detectChanges();
@@ -279,8 +255,7 @@ export class Seats {
       return;
     }
 
-    const eventId =
-      this.route.snapshot.paramMap.get('id');
+    const eventId = this.route.snapshot.paramMap.get('id');
 
     if (!eventId) {
       this.errorMessage = 'Etkinlik bulunamadı.';
@@ -290,8 +265,7 @@ export class Seats {
     const token = localStorage.getItem('token');
 
     if (!token) {
-      this.errorMessage =
-        'Satın alma işlemi için giriş yapmalısınız.';
+      this.errorMessage = 'Satın alma işlemi için giriş yapmalısınız.';
       return;
     }
 
@@ -305,46 +279,30 @@ export class Seats {
     };
 
     this.http
-      .post(
-        'http://localhost:5040/api/orders',
-        orderData,
-        { headers }
-      )
+      .post('http://localhost:5040/api/orders', orderData, { headers })
       .subscribe({
         next: (response) => {
-          console.log(
-            'Sipariş başarılı:',
-            response
-          );
+          console.log('Sipariş başarılı:', response);
 
           this.selectedSeat!.status = 'Sold';
-
           this.selectedSeat = null;
 
-          this.prepareStandingArea();
-
+          this.updateSeatLists();
           this.cdr.detectChanges();
 
-          alert(
-            'Biletiniz başarıyla oluşturuldu!'
-          );
+          alert('Biletiniz başarıyla oluşturuldu!');
         },
 
         error: (error) => {
-          console.error(
-            'Sipariş hatası:',
-            error
-          );
+          console.error('Sipariş hatası:', error);
 
           if (error.status === 409) {
             this.errorMessage =
               'Bu koltuk artık kullanılamıyor veya rezervasyon süresi dolmuş.';
           } else if (error.status === 401) {
-            this.errorMessage =
-              'Oturumunuz geçersiz. Lütfen tekrar giriş yapın.';
+            this.errorMessage = 'Oturumunuz geçersiz. Lütfen tekrar giriş yapın.';
           } else {
-            this.errorMessage =
-              'Satın alma sırasında bir hata oluştu.';
+            this.errorMessage = 'Satın alma sırasında bir hata oluştu.';
           }
 
           this.cdr.detectChanges();
