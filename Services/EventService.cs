@@ -95,7 +95,27 @@ public class EventService : IEventService
 
     public async Task<List<EventSeat>> GetSeatsByEventIdAsync(int eventId)
     {
-        return await _repository.GetEventSeatsAsync(eventId);
+        var seats = await _repository.GetEventSeatsAsync(eventId);
+        var now = DateTime.UtcNow;
+
+        var expiredSeats = seats.Where(s =>
+            s.Status == EventSeatStatus.Reserved &&
+            s.ReservedUntil.HasValue &&
+            s.ReservedUntil.Value <= now
+        ).ToList();
+
+        if (expiredSeats.Count > 0)
+        {
+            foreach (var seat in expiredSeats)
+            {
+                seat.Status = EventSeatStatus.Available;
+                seat.ReservedUntil = null;
+                seat.ReservedByUserId = null;
+                await _repository.UpdateEventSeatAsync(seat);
+            }
+        }
+
+        return seats;
     }
 
     public async Task<Event> CreateAsync(Event newEvent)

@@ -1,6 +1,7 @@
 import { Component, ChangeDetectorRef, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink, Router } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 
 interface Seat {
   id: number;
@@ -37,13 +38,14 @@ interface Venue {
 
 @Component({
   selector: 'app-seats',
-  imports: [RouterLink],
+  imports: [RouterLink, FormsModule],
   templateUrl: './seats.html',
   styleUrl: './seats.css'
 })
 export class Seats {
   private http = inject(HttpClient);
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
 
   seats: Seat[] = [];
@@ -51,6 +53,7 @@ export class Seats {
 
   isLoading = true;
   isReserving = false;
+  isProcessingPayment = false;
   errorMessage = '';
 
   selectedSeat: Seat | null = null;
@@ -59,6 +62,17 @@ export class Seats {
   standingAvailableCount = 0;
   standingTotalCount = 0;
   hasStanding = false;
+
+  // Ödeme Modalı & Form Alanları
+  showPaymentModal = false;
+  paymentError = '';
+  paymentForm = {
+    cardHolderName: '',
+    cardNumber: '',
+    expireMonth: '12',
+    expireYear: '28',
+    cvv: '123'
+  };
 
   ngOnInit() {
     const eventId = this.route.snapshot.paramMap.get('id');
@@ -79,15 +93,12 @@ export class Seats {
       )
       .subscribe({
         next: (response) => {
-          console.log('Koltuklar:', response);
           this.loadVenueInfo(eventId, response);
         },
         error: (error) => {
           console.error('Koltuk API hatası:', error);
-
           this.errorMessage = 'Koltuklar yüklenemedi.';
           this.isLoading = false;
-
           this.cdr.detectChanges();
         }
       });
@@ -105,14 +116,12 @@ export class Seats {
           if (!venue) {
             this.seats = eventSeats;
             this.updateSeatLists();
-
             this.isLoading = false;
             this.cdr.detectChanges();
             return;
           }
 
           const blockMap = new Map<number, VenueBlock>();
-
           for (const block of venue.blocks ?? []) {
             blockMap.set(block.id, block);
           }
@@ -133,20 +142,14 @@ export class Seats {
             };
           });
 
-          console.log('Blok bilgileri eklenmiş koltuklar:', this.seats);
-
           this.updateSeatLists();
-
           this.isLoading = false;
           this.cdr.detectChanges();
         },
-
         error: (error) => {
           console.error('Etkinlik bilgileri yüklenemedi:', error);
-
           this.seats = eventSeats;
           this.updateSeatLists();
-
           this.isLoading = false;
           this.cdr.detectChanges();
         }
@@ -164,44 +167,38 @@ export class Seats {
     this.prepareStandingArea();
   }
 
-    prepareStandingArea() {
-      const standingSeats = this.seats.filter(
-        seat =>
-          seat.blockType === 1 ||
-          seat.blockName === 'Ayakta Alan' ||
-          (seat.seat?.rowNumber ?? 1) === 0
-      );
+  prepareStandingArea() {
+    const standingSeats = this.seats.filter(
+      seat =>
+        seat.blockType === 1 ||
+        seat.blockName === 'Ayakta Alan' ||
+        (seat.seat?.rowNumber ?? 1) === 0
+    );
 
-      this.hasStanding = standingSeats.length > 0;
-      this.standingTotalCount = standingSeats.length;
+    this.hasStanding = standingSeats.length > 0;
+    this.standingTotalCount = standingSeats.length;
+    this.standingAvailableCount = standingSeats.filter(
+      seat => seat.status === 'Available'
+    ).length;
 
-      this.standingAvailableCount = standingSeats.filter(
+    this.standingSeat =
+      standingSeats.find(
         seat => seat.status === 'Available'
-      ).length;
-
-      this.standingSeat =
-        standingSeats.find(
-          seat => seat.status === 'Available'
-        ) ?? null;
-    }
+      ) ?? null;
+  }
 
   reserveSeat(seat: Seat) {
-    if (
-      seat.status !== 'Available' ||
-      this.isReserving
-    ) {
+    if (seat.status !== 'Available' || this.isReserving) {
       return;
     }
 
     const eventId = this.route.snapshot.paramMap.get('id');
-
     if (!eventId) {
       this.errorMessage = 'Etkinlik bulunamadı.';
       return;
     }
 
     const token = localStorage.getItem('token');
-
     if (!token) {
       this.errorMessage = 'Rezervasyon yapmak için giriş yapmalısınız.';
       return;
@@ -222,21 +219,15 @@ export class Seats {
       )
       .subscribe({
         next: (response) => {
-          console.log('Rezervasyon başarılı:', response);
-
           seat.status = 'Reserved';
           this.selectedSeat = seat;
           this.isReserving = false;
-
           this.updateSeatLists();
           this.cdr.detectChanges();
         },
-
         error: (error) => {
           console.error('Rezervasyon hatası:', error);
-
           this.isReserving = false;
-
           if (error.status === 401) {
             this.errorMessage = 'Oturumunuz geçersiz. Lütfen tekrar giriş yapın.';
           } else if (error.status === 400) {
@@ -244,69 +235,109 @@ export class Seats {
           } else {
             this.errorMessage = 'Rezervasyon sırasında bir hata oluştu.';
           }
-
           this.cdr.detectChanges();
         }
       });
   }
 
-  purchaseSeat() {
-    if (!this.selectedSeat) {
-      return;
+  openPaymentModal() {
+    this.paymentError = '';
+    this.showPaymentModal = true;
+  }
+
+  closePaymentModal() {
+    if (!this.isProcessingPayment) {
+      this.showPaymentModal = false;
     }
+  }
+
+  submitPayment() {
+    if (!this.selectedSeat) return;
 
     const eventId = this.route.snapshot.paramMap.get('id');
-
-    if (!eventId) {
-      this.errorMessage = 'Etkinlik bulunamadı.';
-      return;
-    }
-
     const token = localStorage.getItem('token');
 
-    if (!token) {
-      this.errorMessage = 'Satın alma işlemi için giriş yapmalısınız.';
+    if (!token || !eventId) {
+      this.paymentError = 'Oturumunuz bulunamadı. Lütfen giriş yapın.';
       return;
     }
+
+    if (!this.paymentForm.cardHolderName || !this.paymentForm.cardNumber || !this.paymentForm.cvv) {
+      this.paymentError = 'Lütfen tüm kart bilgilerini eksiksiz doldurun.';
+      return;
+    }
+
+    this.isProcessingPayment = true;
+    this.paymentError = '';
 
     const headers = new HttpHeaders({
       Authorization: `Bearer ${token}`
     });
 
-    const orderData = {
+    const orderPayload = {
       eventId: Number(eventId),
-      eventSeatIds: [this.selectedSeat.id]
+      eventSeatIds: [this.selectedSeat.id],
+      payment: {
+        cardHolderName: this.paymentForm.cardHolderName,
+        cardNumber: this.paymentForm.cardNumber.replace(/\s+/g, ''),
+        expireMonth: this.paymentForm.expireMonth.padStart(2, '0'),
+        expireYear: this.paymentForm.expireYear,
+        cvv: this.paymentForm.cvv
+      }
     };
+    
 
     this.http
-      .post('http://localhost:5040/api/orders', orderData, { headers })
+      .post('http://localhost:5040/api/orders', orderPayload, { headers })
       .subscribe({
         next: (response) => {
-          console.log('Sipariş başarılı:', response);
-
+          this.isProcessingPayment = false;
+          this.showPaymentModal = false;
           this.selectedSeat!.status = 'Sold';
           this.selectedSeat = null;
-
           this.updateSeatLists();
           this.cdr.detectChanges();
 
-          alert('Biletiniz başarıyla oluşturuldu!');
+          alert('Ödeme onaylandı! Biletiniz başarıyla oluşturuldu.');
+          this.router.navigate(['/orders']);
+
         },
-
         error: (error) => {
-          console.error('Sipariş hatası:', error);
+                  this.isProcessingPayment = false;
+                  console.error('Ödeme / Sipariş hatası:', error);
 
-          if (error.status === 409) {
-            this.errorMessage =
-              'Bu koltuk artık kullanılamıyor veya rezervasyon süresi dolmuş.';
-          } else if (error.status === 401) {
-            this.errorMessage = 'Oturumunuz geçersiz. Lütfen tekrar giriş yapın.';
-          } else {
-            this.errorMessage = 'Satın alma sırasında bir hata oluştu.';
-          }
+                  // 1. Modalı kapat
+                  this.showPaymentModal = false;
 
-          this.cdr.detectChanges();
-        }
+                  // 2. Hata mesajını belirle ve ana sayfada göster
+                  if (error.status === 400 || error.status === 422) {
+                    this.errorMessage = 'Ödeme reddedildi: Kart bilgileri geçersiz veya bakiye yetersiz.';
+                  } else if (error.status === 409) {
+                    this.errorMessage = 'Rezervasyon süresi doldu veya koltuk başka bir kullanıcı tarafından alındı.';
+                  } else {
+                    this.errorMessage = 'Ödeme işlemi sırasında bir hata oluştu. Lütfen tekrar deneyin.';
+                  }
+
+                  // 3. Koltuğu ve kart numarasını sıfırla, listeyi tazele
+                  const eventId = this.route.snapshot.paramMap.get('id');
+                  if (eventId) {
+                    this.loadSeats(eventId);
+                  }
+                  this.selectedSeat = null;
+                  this.paymentForm.cardNumber = '';
+
+                  this.cdr.detectChanges();
+                }
       });
+      }formatCardNumber(event: Event) {
+        const input = event.target as HTMLInputElement;
+        let value = input.value.replace(/\D/g, '');
+
+        if (value.length > 16) {
+          value = value.substring(0, 16);
+        }
+
+        const parts = value.match(/.{1,4}/g);
+        this.paymentForm.cardNumber = parts ? parts.join(' ') : value;
+      }
   }
-}

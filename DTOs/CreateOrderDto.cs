@@ -10,4 +10,7 @@ public class CreateOrderDto
     [Required]
     [MinLength(1)]
     public List<int> EventSeatIds { get; set; } = new();
+
+    [Required]
+    public PaymentRequestDto Payment { get; set; } = null!;
 }

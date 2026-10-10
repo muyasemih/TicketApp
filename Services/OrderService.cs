@@ -9,14 +9,17 @@ public class OrderService : IOrderService
 {
     private readonly IOrderRepository _orderRepository;
     private readonly AppDbContext _db;
+    private readonly IPaymentService _paymentService;
 
     public OrderService(
         IOrderRepository orderRepository,
         AppDbContext db,
+        IPaymentService paymentService,
         IHttpContextAccessor httpContextAccessor)
     {
         _orderRepository = orderRepository;
         _db = db;
+        _paymentService = paymentService;
     }
 
     public async Task<OrderDto?> CreateAsync(
@@ -91,11 +94,27 @@ public class OrderService : IOrderService
             });
         }
 
+        var totalAmount = orderItems.Sum(item => item.Price);
+
+        // Ödeme Alma Simülasyonu
+        var paymentResult = await _paymentService.ProcessPaymentAsync(totalAmount, newOrder.Payment);
+        if (!paymentResult.IsSuccess)
+        {
+            // Ödeme başarısız ise sipariş iptal edilir
+            return null;
+        }
+
+        var cleanCard = newOrder.Payment.CardNumber.Replace(" ", "").Replace("-", "");
+        var lastFour = cleanCard.Length >= 4 ? cleanCard[^4..] : cleanCard;
+
         var order = new Order
         {
             UserId = userId,
             CreatedAt = now,
-            TotalAmount = orderItems.Sum(item => item.Price),
+            TotalAmount = totalAmount,
+            PaymentStatus = PaymentStatus.Paid,
+            PaymentTransactionId = paymentResult.TransactionId,
+            CardLastFourDigits = lastFour,
             Items = orderItems
         };
 
@@ -187,11 +206,14 @@ public class OrderService : IOrderService
             }).ToList()
         }).ToList();
     }
+
     public async Task<(bool Success, string Message)> CancelTicketAsync(int ticketId, int userId, bool isAdmin = false)
     {
         var ticket = await _db.Tickets
             .Include(t => t.OrderItem)
                 .ThenInclude(oi => oi.Order)
+                    .ThenInclude(o => o.Items)
+                        .ThenInclude(i => i.Ticket)
             .Include(t => t.OrderItem)
                 .ThenInclude(oi => oi.EventSeat)
                     .ThenInclude(es => es.Event)
@@ -202,7 +224,9 @@ public class OrderService : IOrderService
             return (false, "Bilet bulunamadı.");
         }
 
-        if (!isAdmin && ticket.OrderItem.Order.UserId != userId)
+        var order = ticket.OrderItem.Order;
+
+        if (!isAdmin && order.UserId != userId)
         {
             return (false, "Bu bileti iptal etme yetkiniz yok.");
         }
@@ -225,6 +249,16 @@ public class OrderService : IOrderService
             return (false, "Etkinliğin başlamasına 2 saatten az bir süre kaldığı için bilet iptal edilemez.");
         }
 
+        // Karta İade (Refund) Süreci
+        var refundAmount = ticket.OrderItem.Price;
+        var transactionId = order.PaymentTransactionId ?? "MOCK-TXN";
+        
+        var refundResult = await _paymentService.ProcessRefundAsync(transactionId, refundAmount);
+        if (!refundResult.IsSuccess)
+        {
+            return (false, $"İade işlemi kart sağlayıcısı tarafından reddedildi: {refundResult.ErrorMessage}");
+        }
+
         await using var transaction = await _db.Database.BeginTransactionAsync();
 
         try
@@ -237,10 +271,20 @@ public class OrderService : IOrderService
             eventSeat.ReservedUntil = null;
             eventSeat.ReservedByUserId = null;
 
+            // Siparişteki diğer biletlerin durumunu kontrol et
+            var allTickets = order.Items.Select(i => i.Ticket).Where(t => t != null).ToList();
+            var allCancelled = allTickets.All(t => t!.Id == ticket.Id || t.Status == TicketStatus.Cancelled);
+
+            order.PaymentStatus = allCancelled ? PaymentStatus.Refunded : PaymentStatus.PartiallyRefunded;
+
             await _db.SaveChangesAsync();
             await transaction.CommitAsync();
 
-            return (true, "Bilet başarıyla iptal edildi ve koltuk tekrar satışa açıldı.");
+            var cardInfo = !string.IsNullOrEmpty(order.CardLastFourDigits)
+                ? $"**** **** **** {order.CardLastFourDigits}"
+                : "kartınıza";
+
+            return (true, $"Bilet iptal edildi. {refundAmount:N2} TL tutarındaki ücret {cardInfo} nolu karta iade edildi. Referans: {refundResult.TransactionId}");
         }
         catch (Exception)
         {
