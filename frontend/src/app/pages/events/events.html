@@ -4,20 +4,23 @@
       <h1>TicketApp</h1>
       <p>Etkinlikler</p>
     </div>
- 
-    <div class="header-actions">
-    <a routerLink="/orders" class="orders-button">
-      Biletlerim
-    </a>
 
-    <button class="logout-button" (click)="logout()">
-      Çıkış Yap
-    </button>
-  </div>
+    <div class="header-actions">
+      <a routerLink="/orders" class="orders-button">
+        Biletlerim
+      </a>
+
+      <a routerLink="/profile" class="profile-button">
+        Profilim
+      </a>
+
+      <button class="logout-button" (click)="logout()">
+        Çıkış Yap
+      </button>
+    </div>
   </header>
 
   <main class="events-container">
-
     @if (isLoading) {
       <p class="loading">Etkinlikler yükleniyor...</p>
     }
@@ -48,6 +51,5 @@
         }
       </div>
     }
-
   </main>
 </div>

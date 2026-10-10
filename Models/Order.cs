@@ -21,7 +21,6 @@ public class Order
 
     public DateTime CreatedAt { get; set; }
 
-    // Ödeme Bilgileri
     public PaymentStatus PaymentStatus { get; set; } = PaymentStatus.Paid;
 
     public string? PaymentTransactionId { get; set; }

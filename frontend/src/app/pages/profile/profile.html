@@ -1,0 +1,112 @@
+<div class="profile-container">
+  <div class="profile-card">
+    <div class="profile-header">
+      <div class="avatar-circle">
+        {{ name() ? name().charAt(0).toUpperCase() : 'U' }}
+      </div>
+      <div class="header-details">
+        <h2>Hesap Ayarları</h2>
+        <p class="role-badge">
+          Rol: <strong>{{ role() }}</strong>
+          @if (isStudent()) {
+            <span class="student-tag">🎓 Öğrenci İndirimi Aktif</span>
+          }
+        </p>
+      </div>
+    </div>
+
+    @if (isLoading()) {
+      <div class="state-message">
+        Yükleniyor...
+      </div>
+    } @else {
+      @if (successMessage()) {
+        <div class="alert alert-success">
+          {{ successMessage() }}
+        </div>
+      }
+
+      @if (errorMessage()) {
+        <div class="alert alert-danger">
+          {{ errorMessage() }}
+        </div>
+      }
+
+      <form (ngSubmit)="updateProfile()" class="profile-form">
+        <section class="form-section">
+          <h3>Kişisel Bilgiler</h3>
+          
+          <div class="form-group">
+            <label for="name">Ad Soyad</label>
+            <input 
+              type="text" 
+              id="name" 
+              [ngModel]="name()" 
+              (ngModelChange)="name.set($event)"
+              name="name" 
+              required 
+              placeholder="Adınızı ve soyadınızı girin"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="email">E-posta</label>
+            <input 
+              type="email" 
+              id="email" 
+              [ngModel]="email()" 
+              (ngModelChange)="email.set($event)"
+              name="email" 
+              required 
+              placeholder="ornek@mail.com"
+            />
+          </div>
+        </section>
+
+        <section class="form-section password-section">
+          <h3>Şifre Değiştir</h3>
+          <p class="section-hint">Şifrenizi değiştirmek istemiyorsanız bu alanları boş bırakabilirsiniz.</p>
+
+          <div class="form-group">
+            <label for="currentPassword">Mevcut Şifre</label>
+            <input 
+              type="password" 
+              id="currentPassword" 
+              [(ngModel)]="currentPassword" 
+              name="currentPassword" 
+              placeholder="••••••••"
+            />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="newPassword">Yeni Şifre</label>
+              <input 
+                type="password" 
+                id="newPassword" 
+                [(ngModel)]="newPassword" 
+                name="newPassword" 
+                placeholder="En az 6 karakter"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="confirmPassword">Yeni Şifre (Tekrar)</label>
+              <input 
+                type="password" 
+                id="confirmPassword" 
+                [(ngModel)]="confirmPassword" 
+                name="confirmPassword" 
+                placeholder="Yeni şifrenizi doğrulayın"
+              />
+            </div>
+          </div>
+        </section>
+
+        <button type="submit" class="submit-btn" [disabled]="isSaving()">
+          {{ isSaving() ? 'Kaydediliyor...' : 'Değişiklikleri Kaydet' }}
+        </button>
+      </form>
+    }
+  </div>
+</div>

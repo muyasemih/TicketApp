@@ -32,8 +32,7 @@ public class UserService : IUserService
 
         if (existingUser != null)
         {
-            throw new ArgumentException(
-                "Bu email adresi zaten kayıtlı.");
+            throw new ArgumentException("Bu email adresi zaten kayıtlı.");
         }
 
         var user = new User
@@ -43,9 +42,7 @@ public class UserService : IUserService
             IsStudent = newUser.IsStudent
         };
 
-        user.PasswordHash = _passwordHasher.HashPassword(
-            user,
-            newUser.Password);
+        user.PasswordHash = _passwordHasher.HashPassword(user, newUser.Password);
 
         await _repository.CreateAsync(user);
 
@@ -89,8 +86,77 @@ public class UserService : IUserService
                 Id = user.Id,
                 Name = user.Name,
                 Email = user.Email,
-            IsStudent = user.IsStudent
+                IsStudent = user.IsStudent
             }
+        };
+    }
+
+    public async Task<UserProfileDto?> GetProfileAsync(int userId)
+    {
+        var user = await _repository.GetByIdAsync(userId);
+        if (user == null) return null;
+
+        return new UserProfileDto
+        {
+            Id = user.Id,
+            Name = user.Name,
+            Email = user.Email,
+            Role = user.Role,
+            IsStudent = user.IsStudent
+        };
+    }
+
+    public async Task<UserProfileDto> UpdateProfileAsync(int userId, UpdateProfileDto dto)
+    {
+        var user = await _repository.GetByIdAsync(userId);
+        if (user == null)
+        {
+            throw new KeyNotFoundException("Kullanıcı bulunamadı.");
+        }
+
+        var trimmedEmail = dto.Email.Trim().ToLowerInvariant();
+
+        if (trimmedEmail != user.Email)
+        {
+            var emailExists = await _repository.GetByEmailAsync(trimmedEmail);
+            if (emailExists != null && emailExists.Id != userId)
+            {
+                throw new ArgumentException("Bu e-posta adresi başka bir hesap tarafından kullanılıyor.");
+            }
+            user.Email = trimmedEmail;
+        }
+
+        user.Name = dto.Name.Trim();
+
+        if (!string.IsNullOrWhiteSpace(dto.NewPassword))
+        {
+            if (string.IsNullOrWhiteSpace(dto.CurrentPassword))
+            {
+                throw new ArgumentException("Şifrenizi değiştirmek için mevcut şifrenizi girmelisiniz.");
+            }
+
+            var passwordCheck = _passwordHasher.VerifyHashedPassword(
+                user,
+                user.PasswordHash,
+                dto.CurrentPassword);
+
+            if (passwordCheck == PasswordVerificationResult.Failed)
+            {
+                throw new ArgumentException("Mevcut şifreniz hatalı.");
+            }
+
+            user.PasswordHash = _passwordHasher.HashPassword(user, dto.NewPassword);
+        }
+
+        await _repository.UpdateAsync(user);
+
+        return new UserProfileDto
+        {
+            Id = user.Id,
+            Name = user.Name,
+            Email = user.Email,
+            Role = user.Role,
+            IsStudent = user.IsStudent
         };
     }
 
@@ -102,38 +168,20 @@ public class UserService : IUserService
 
         if (string.IsNullOrWhiteSpace(jwtKey))
         {
-            throw new InvalidOperationException(
-                "Jwt:Key appsettings.json içinde bulunamadı.");
+            throw new InvalidOperationException("Jwt:Key appsettings.json içinde bulunamadı.");
         }
 
         var claims = new List<Claim>
-            {
-                new Claim(
-                    ClaimTypes.NameIdentifier,
-                    user.Id.ToString()),
+        {
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Name, user.Name),
+            new Claim(ClaimTypes.Email, user.Email),
+            new Claim(ClaimTypes.Role, user.Role)
+        };
 
-                new Claim(
-                    ClaimTypes.Name,
-                    user.Name),
-
-                new Claim(
-                    ClaimTypes.Email,
-                    user.Email),
-
-                new Claim(
-                    ClaimTypes.Role,
-                    user.Role)
-            };
-
-        var key = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(jwtKey));
-
-        var credentials = new SigningCredentials(
-            key,
-            SecurityAlgorithms.HmacSha256);
-
-        var expiresInMinutes =
-            _configuration.GetValue<int>("Jwt:ExpiresInMinutes");
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
+        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var expiresInMinutes = _configuration.GetValue<int>("Jwt:ExpiresInMinutes");
 
         var token = new JwtSecurityToken(
             issuer: issuer,

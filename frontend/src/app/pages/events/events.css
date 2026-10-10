@@ -112,3 +112,22 @@
 .logout-button:hover {
   background: #dc2626;
 }
+.profile-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  background-color: #f3f4f6;
+  color: #1f2937;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  border: 1px solid #e5e7eb;
+}
+
+.profile-button:hover {
+  background-color: #e5e7eb;
+  color: #111827;
+}

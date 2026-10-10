@@ -5,25 +5,34 @@ namespace TicketApp.Repositories;
 
 public class UserRepository : IUserRepository
 {
-    private readonly AppDbContext _db;
+    private readonly AppDbContext _context;
 
-    public UserRepository(AppDbContext db)
+    public UserRepository(AppDbContext context)
     {
-        _db = db;
+        _context = context;
+    }
+
+    public async Task<User?> GetByIdAsync(int id)
+    {
+        return await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
     }
 
     public async Task<User?> GetByEmailAsync(string email)
     {
-        return await _db.Users
-            .FirstOrDefaultAsync(u => u.Email == email);
+        return await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
     }
 
     public async Task<User> CreateAsync(User user)
     {
-        _db.Users.Add(user);
+        await _context.Users.AddAsync(user);
+        await _context.SaveChangesAsync();
+        return user;
+    }
 
-        await _db.SaveChangesAsync();
-
+    public async Task<User> UpdateAsync(User user)
+    {
+        _context.Users.Update(user);
+        await _context.SaveChangesAsync();
         return user;
     }
 }

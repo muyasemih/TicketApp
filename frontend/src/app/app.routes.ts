@@ -14,10 +14,10 @@ export const routes: Routes = [
       import('./pages/login/login').then(m => m.Login)
   },
   {
-  path: 'register',
-  loadComponent: () =>
-    import('./pages/register/register').then(m => m.Register)
-},
+    path: 'register',
+    loadComponent: () =>
+      import('./pages/register/register').then(m => m.Register)
+  },
   {
     path: 'events',
     loadComponent: () =>
@@ -35,16 +35,22 @@ export const routes: Routes = [
       import('./pages/seats/seats').then(m => m.Seats)
   },
   {
-  path: 'admin',
-  canActivate: [adminGuard],
-  loadComponent: () =>
-    import('./pages/admin/admin').then(m => m.Admin)
+    path: 'admin',
+    canActivate: [adminGuard],
+    loadComponent: () =>
+      import('./pages/admin/admin').then(m => m.Admin)
   },
   {
     path: 'orders',
     canActivate: [authGuard],
     loadComponent: () =>
       import('./pages/orders/orders').then(m => m.Orders)
+  },
+  {
+    path: 'profile',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./pages/profile/profile').then(m => m.Profile)
   },
   {
     path: '**',
