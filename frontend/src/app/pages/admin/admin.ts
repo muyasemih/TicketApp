@@ -3,6 +3,13 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
+import { environment } from '../../../environments/environment';
+
+interface VenueItem {
+  id: number;
+  name: string;
+  blocks?: VenueBlock[];
+}
 
 interface VenueBlock {
   id: number;
@@ -13,6 +20,7 @@ interface VenueBlock {
 
 interface BlockPrice {
   venueBlockId: number;
+  blockName?: string;
   price: number | null;
 }
 
@@ -21,6 +29,9 @@ interface EventItem {
   name: string;
   eventDate: string;
   venueId: number;
+  venue?: {
+    name: string;
+  };
   blockPrices?: {
     id: number;
     venueBlockId: number;
@@ -39,32 +50,57 @@ export class Admin {
   private cdr = inject(ChangeDetectorRef);
 
   events: EventItem[] = [];
-
+  venues: VenueItem[] = [];
   venueBlocks: VenueBlock[] = [];
   blockPrices: BlockPrice[] = [];
 
   name = '';
   date = '';
-  venueId: number | null = 1005;
+  venueId: number | null = null;
 
   editingId: number | null = null;
 
   isLoading = true;
+  isLoadingVenues = true;
   isSaving = false;
   errorMessage = '';
   successMessage = '';
 
   ngOnInit() {
-    this.loadVenueBlocks();
+    this.loadVenues();
     this.loadEvents();
   }
 
   getHeaders() {
     const token = localStorage.getItem('token');
-
     return new HttpHeaders({
       Authorization: `Bearer ${token}`
     });
+  }
+
+  loadVenues() {
+    this.isLoadingVenues = true;
+    this.http
+      .get<VenueItem[]>(`${environment.apiUrl}/venues`)
+      .subscribe({
+        next: (response) => {
+          this.venues = response ?? [];
+          this.isLoadingVenues = false;
+
+          // Eğer seçili salon yoksa ve en az 1 salon varsa ilkini seç
+          if (!this.venueId && this.venues.length > 0) {
+            this.venueId = this.venues[0].id;
+            this.loadVenueBlocks();
+          }
+
+          this.cdr.detectChanges();
+        },
+        error: (error) => {
+          console.error('Salon listesi yüklenemedi:', error);
+          this.isLoadingVenues = false;
+          this.cdr.detectChanges();
+        }
+      });
   }
 
   loadVenueBlocks() {
@@ -75,25 +111,21 @@ export class Admin {
     }
 
     this.http
-      .get<any>(`http://localhost:5040/api/venue/${this.venueId}`)
+      .get<any>(`${environment.apiUrl}/venues/${this.venueId}`)
       .subscribe({
-        next: response => {
+        next: (response) => {
           this.venueBlocks = response.blocks ?? [];
-
           this.blockPrices = this.venueBlocks.map(block => ({
             venueBlockId: block.id,
+            blockName: block.name,
             price: null
           }));
-
           this.cdr.detectChanges();
         },
-        error: error => {
-          console.error('Salon bilgileri yüklenemedi:', error);
-
+        error: (error) => {
+          console.error('Salon blokları yüklenemedi:', error);
           this.venueBlocks = [];
           this.blockPrices = [];
-
-          this.errorMessage = 'Salon bilgileri yüklenemedi.';
           this.cdr.detectChanges();
         }
       });
@@ -101,19 +133,17 @@ export class Admin {
 
   loadEvents() {
     this.http
-      .get<EventItem[]>('http://localhost:5040/api/events')
+      .get<EventItem[]>(`${environment.apiUrl}/events`)
       .subscribe({
-        next: response => {
+        next: (response) => {
           this.events = response;
           this.isLoading = false;
           this.cdr.detectChanges();
         },
-        error: error => {
+        error: (error) => {
           console.error('Etkinlikler yüklenemedi:', error);
-
           this.errorMessage = 'Etkinlikler yüklenemedi.';
           this.isLoading = false;
-
           this.cdr.detectChanges();
         }
       });
@@ -124,29 +154,23 @@ export class Admin {
     this.successMessage = '';
 
     if (!this.name || !this.date || !this.venueId) {
-      this.errorMessage =
-        'Lütfen etkinlik adı, tarih ve salon bilgilerini doldurun.';
+      this.errorMessage = 'Lütfen etkinlik adı, tarih ve salon seçimini eksiksiz yapın.';
       return;
     }
 
     if (this.blockPrices.length === 0) {
-      this.errorMessage =
-        'Seçilen salonda fiyatlandırılabilir blok bulunamadı.';
+      this.errorMessage = 'Seçilen salonda fiyatlandırılabilir blok bulunamadı.';
       return;
     }
 
-    if (
-      this.blockPrices.some(
-        block => block.price === null || block.price < 0
-      )
-    ) {
-      this.errorMessage = 'Lütfen tüm bilet fiyatlarını girin.';
+    if (this.blockPrices.some(block => block.price === null || block.price < 0)) {
+      this.errorMessage = 'Lütfen tüm bilet fiyatlarını geçerli bir tutar olarak girin.';
       return;
     }
 
     this.isSaving = true;
 
-    const blocks: BlockPrice[] = this.blockPrices.map(block => ({
+    const blocks = this.blockPrices.map(block => ({
       venueBlockId: block.venueBlockId,
       price: Number(block.price)
     }));
@@ -160,65 +184,33 @@ export class Admin {
 
     if (this.editingId === null) {
       this.http
-        .post(
-          'http://localhost:5040/api/events',
-          eventData,
-          {
-            headers: this.getHeaders()
-          }
-        )
+        .post(`${environment.apiUrl}/events`, eventData, { headers: this.getHeaders() })
         .subscribe({
           next: () => {
-            this.successMessage =
-              'Etkinlik başarıyla oluşturuldu.';
-
+            this.successMessage = 'Etkinlik başarıyla oluşturuldu.';
             this.clearForm();
             this.loadEvents();
           },
-          error: error => {
-            console.error(
-              'Etkinlik oluşturma hatası:',
-              error
-            );
-
-            this.errorMessage =
-              error.error?.error ||
-              'Etkinlik oluşturulamadı.';
-
+          error: (error) => {
+            console.error('Etkinlik oluşturma hatası:', error);
+            this.errorMessage = error.error?.error || 'Etkinlik oluşturulamadı.';
             this.isSaving = false;
-
             this.cdr.detectChanges();
           }
         });
     } else {
       this.http
-        .put(
-          `http://localhost:5040/api/events/${this.editingId}`,
-          eventData,
-          {
-            headers: this.getHeaders()
-          }
-        )
+        .put(`${environment.apiUrl}/events/${this.editingId}`, eventData, { headers: this.getHeaders() })
         .subscribe({
           next: () => {
-            this.successMessage =
-              'Etkinlik başarıyla güncellendi.';
-
+            this.successMessage = 'Etkinlik başarıyla güncellendi.';
             this.clearForm();
             this.loadEvents();
           },
-          error: error => {
-            console.error(
-              'Etkinlik güncelleme hatası:',
-              error
-            );
-
-            this.errorMessage =
-              error.error?.error ||
-              'Etkinlik güncellenemedi.';
-
+          error: (error) => {
+            console.error('Etkinlik güncelleme hatası:', error);
+            this.errorMessage = error.error?.error || 'Etkinlik güncellenemedi.';
             this.isSaving = false;
-
             this.cdr.detectChanges();
           }
         });
@@ -227,7 +219,6 @@ export class Admin {
 
   editEvent(event: EventItem) {
     this.editingId = event.id;
-
     this.name = event.name;
     this.date = event.eventDate;
     this.venueId = event.venueId;
@@ -236,43 +227,26 @@ export class Admin {
     this.successMessage = '';
 
     this.http
-      .get<any>(
-        `http://localhost:5040/api/venue/${event.venueId}`
-      )
+      .get<any>(`${environment.apiUrl}/venues/${event.venueId}`)
       .subscribe({
-        next: response => {
+        next: (response) => {
           this.venueBlocks = response.blocks ?? [];
-
           this.blockPrices = this.venueBlocks.map(block => ({
             venueBlockId: block.id,
-            price:
-              event.blockPrices?.find(
-                price => price.venueBlockId === block.id
-              )?.price ?? null
+            blockName: block.name,
+            price: event.blockPrices?.find(p => p.venueBlockId === block.id)?.price ?? null
           }));
-
           this.cdr.detectChanges();
         },
-        error: error => {
-          console.error(
-            'Salon bilgileri yüklenemedi:',
-            error
-          );
-
-          this.errorMessage =
-            'Etkinlik blok bilgileri yüklenemedi.';
-
+        error: (error) => {
+          console.error('Salon blokları yüklenemedi:', error);
           this.cdr.detectChanges();
         }
       });
   }
 
   deleteEvent(id: number) {
-    if (
-      !confirm(
-        'Bu etkinliği silmek istediğinize emin misiniz?'
-      )
-    ) {
+    if (!confirm('Bu etkinliği silmek istediğinize emin misiniz?')) {
       return;
     }
 
@@ -280,29 +254,15 @@ export class Admin {
     this.successMessage = '';
 
     this.http
-      .delete(
-        `http://localhost:5040/api/events/${id}`,
-        {
-          headers: this.getHeaders()
-        }
-      )
+      .delete(`${environment.apiUrl}/events/${id}`, { headers: this.getHeaders() })
       .subscribe({
         next: () => {
-          this.successMessage =
-            'Etkinlik başarıyla silindi.';
-
+          this.successMessage = 'Etkinlik başarıyla silindi.';
           this.loadEvents();
         },
-        error: error => {
-          console.error(
-            'Etkinlik silme hatası:',
-            error
-          );
-
-          this.errorMessage =
-            error.error?.error ||
-            'Etkinlik silinemedi.';
-
+        error: (error) => {
+          console.error('Etkinlik silme hatası:', error);
+          this.errorMessage = error.error?.error || 'Etkinlik silinemedi.';
           this.cdr.detectChanges();
         }
       });
@@ -311,21 +271,18 @@ export class Admin {
   clearForm() {
     this.name = '';
     this.date = '';
-
-    this.venueId = 1005;
-
-    this.venueBlocks = [];
-
-    this.blockPrices = [];
-
     this.editingId = null;
-
     this.isSaving = false;
 
-    this.cdr.detectChanges();
+    if (this.venues.length > 0) {
+      this.venueId = this.venues[0].id;
+      this.loadVenueBlocks();
+    } else {
+      this.venueId = null;
+      this.venueBlocks = [];
+      this.blockPrices = [];
+    }
 
-    // Yeni etkinlik formu açıldığında
-    // varsayılan salonun bloklarını tekrar getir.
-    this.loadVenueBlocks();
+    this.cdr.detectChanges();
   }
 }

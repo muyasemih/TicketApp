@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { environment } from '../../../environments/environment';
 
 interface UserProfile {
   id: number;
@@ -51,7 +52,7 @@ export class Profile implements OnInit {
     this.isLoading.set(true);
     this.errorMessage.set('');
 
-    this.http.get<UserProfile>('http://localhost:5040/api/users/me', {
+    this.http.get<UserProfile>(`${environment.apiUrl}/users/me`, {
       headers: this.getAuthHeaders()
     }).subscribe({
       next: (data) => {
@@ -112,7 +113,7 @@ export class Profile implements OnInit {
       payload.newPassword = this.newPassword;
     }
 
-    this.http.put<UserProfile>('http://localhost:5040/api/users/me', payload, {
+    this.http.put<UserProfile>(`${environment.apiUrl}/users/me`, payload, {
       headers: this.getAuthHeaders()
     }).subscribe({
       next: (updated) => {

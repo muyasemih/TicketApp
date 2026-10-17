@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using TicketApp.DTOs;
 using TicketApp.Models;
@@ -6,7 +7,8 @@ using TicketApp.Services;
 namespace TicketApp.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/venues")]
+[Route("api/venue")]
 public class VenueController : ControllerBase
 {
     private readonly IVenueService _service;
@@ -20,7 +22,6 @@ public class VenueController : ControllerBase
     public async Task<IActionResult> GetVenues()
     {
         var venues = await _service.GetAllAsync();
-
         return Ok(venues);
     }
 
@@ -37,6 +38,7 @@ public class VenueController : ControllerBase
         return Ok(venue);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<IActionResult> CreateVenue(CreateVenueDto newVenue)
     {
@@ -64,6 +66,7 @@ public class VenueController : ControllerBase
         );
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateVenue(
         int id,
@@ -94,6 +97,7 @@ public class VenueController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteVenue(int id)
     {

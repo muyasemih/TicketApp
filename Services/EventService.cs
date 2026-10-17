@@ -18,9 +18,13 @@ public class EventService : IEventService
         _httpContextAccessor = httpContextAccessor;
     }
 
-    public async Task<List<EventDto>> GetAllAsync()
+    public async Task<List<EventDto>> GetAllAsync(
+        string? search = null, 
+        int? venueId = null, 
+        DateTime? startDate = null, 
+        DateTime? endDate = null)
     {
-        var events = await _repository.GetAllAsync();
+        var events = await _repository.GetAllAsync(search, venueId, startDate, endDate);
 
         return events.Select(e => new EventDto
         {

@@ -15,16 +15,16 @@ public class VenueRepository : IVenueRepository
     public async Task<List<Venue>> GetAllAsync()
     {
         return await _context.Venues
+            .AsNoTracking()
             .Include(v => v.Blocks)
-                .ThenInclude(b => b.Seats)
             .ToListAsync();
     }
 
     public async Task<Venue?> GetByIdAsync(int id)
     {
         return await _context.Venues
+            .AsNoTracking()
             .Include(v => v.Blocks)
-                .ThenInclude(b => b.Seats)
             .FirstOrDefaultAsync(v => v.Id == id);
     }
 

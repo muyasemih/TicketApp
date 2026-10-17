@@ -1,10 +1,10 @@
-using TicketApp.Models;
-
 namespace TicketApp.Repositories;
+
+using TicketApp.Models;
 
 public interface IEventRepository
 {
-    Task<List<Event>> GetAllAsync();
+    Task<List<Event>> GetAllAsync(string? search = null, int? venueId = null, DateTime? startDate = null, DateTime? endDate = null);
     Task<Event?> GetByIdAsync(int id);
     Task<Venue?> GetVenueWithSeatsAsync(int venueId);
     Task<List<EventSeat>> GetEventSeatsAsync(int eventId);

@@ -24,6 +24,7 @@ public class OrderRepository : IOrderRepository
     public async Task<List<Order>> GetByUserIdAsync(int userId)
     {
         return await _db.Orders
+            .AsNoTracking()
             .Include(o => o.Items)
             .ThenInclude(oi => oi.EventSeat)
             .Include(o => o.Items)

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using TicketApp.DTOs;
 using TicketApp.Models;
 using TicketApp.Repositories;
@@ -7,25 +8,34 @@ namespace TicketApp.Services;
 
 public class OrderService : IOrderService
 {
+    private const decimal StudentDiscountRate = 0.10m;
+
     private readonly IOrderRepository _orderRepository;
     private readonly AppDbContext _db;
     private readonly IPaymentService _paymentService;
+    private readonly ILogger<OrderService> _logger;
 
     public OrderService(
         IOrderRepository orderRepository,
         AppDbContext db,
         IPaymentService paymentService,
-        IHttpContextAccessor httpContextAccessor)
+        ILogger<OrderService> logger)
     {
         _orderRepository = orderRepository;
         _db = db;
         _paymentService = paymentService;
+        _logger = logger;
     }
 
     public async Task<OrderDto?> CreateAsync(
         int userId,
         CreateOrderDto newOrder)
     {
+        if (newOrder.EventSeatIds is null || newOrder.EventSeatIds.Count == 0)
+        {
+            return null;
+        }
+
         var eventSeats = await _orderRepository.GetEventSeatsAsync(
             newOrder.EventId,
             newOrder.EventSeatIds);
@@ -63,14 +73,15 @@ public class OrderService : IOrderService
             return null;
         }
 
-        const decimal studentDiscountRate = 0.10m;
+        var blockIds = eventSeats
+            .Select(es => es.Seat.VenueBlockId)
+            .Distinct()
+            .ToList();
 
         var blockPrices = await _db.EventBlockPrices
             .Where(bp =>
                 bp.EventId == newOrder.EventId &&
-                eventSeats
-                    .Select(es => es.Seat.VenueBlockId)
-                    .Contains(bp.VenueBlockId))
+                blockIds.Contains(bp.VenueBlockId))
             .ToListAsync();
 
         var orderItems = new List<OrderItem>();
@@ -89,20 +100,12 @@ public class OrderService : IOrderService
             {
                 EventSeatId = eventSeat.Id,
                 Price = user.IsStudent
-                    ? Math.Round(blockPrice.Price * (1 - studentDiscountRate), 2)
+                    ? Math.Round(blockPrice.Price * (1 - StudentDiscountRate), 2)
                     : blockPrice.Price
             });
         }
 
         var totalAmount = orderItems.Sum(item => item.Price);
-
-        // Ödeme Alma Simülasyonu
-        var paymentResult = await _paymentService.ProcessPaymentAsync(totalAmount, newOrder.Payment);
-        if (!paymentResult.IsSuccess)
-        {
-            // Ödeme başarısız ise sipariş iptal edilir
-            return null;
-        }
 
         var cleanCard = newOrder.Payment.CardNumber.Replace(" ", "").Replace("-", "");
         var lastFour = cleanCard.Length >= 4 ? cleanCard[^4..] : cleanCard;
@@ -113,74 +116,69 @@ public class OrderService : IOrderService
             CreatedAt = now,
             TotalAmount = totalAmount,
             PaymentStatus = PaymentStatus.Paid,
-            PaymentTransactionId = paymentResult.TransactionId,
             CardLastFourDigits = lastFour,
             Items = orderItems
         };
 
-        foreach (var eventSeat in eventSeats)
-        {
-            eventSeat.Status = EventSeatStatus.Sold;
-            eventSeat.ReservedUntil = null;
-            eventSeat.ReservedByUserId = null;
-        }
-
-        await using var transaction =
-            await _db.Database.BeginTransactionAsync();
+        await using var transaction = await _db.Database.BeginTransactionAsync();
+        string? chargedTransactionId = null;
 
         try
         {
-            await _orderRepository.CreateAsync(order);
-
-            await _db.SaveChangesAsync();
-
-            var createdTickets = new List<Ticket>();
-
-            foreach (var orderItem in order.Items)
+            foreach (var eventSeat in eventSeats)
             {
-                var ticket = new Ticket
-                {
-                    OrderItemId = orderItem.Id,
-                    TicketNumber = $"TKT-{Guid.NewGuid():N}".ToUpper(),
-                    CreatedAt = now
-                };
-
-                createdTickets.Add(ticket);
+                eventSeat.Status = EventSeatStatus.Sold;
+                eventSeat.ReservedUntil = null;
+                eventSeat.ReservedByUserId = null;
             }
 
-            _db.Tickets.AddRange(createdTickets);
+            await _orderRepository.CreateAsync(order);
+            await _db.SaveChangesAsync();
 
+            var paymentResult = await _paymentService.ProcessPaymentAsync(totalAmount, newOrder.Payment);
+
+            if (!paymentResult.IsSuccess)
+            {
+                await transaction.RollbackAsync();
+                return null;
+            }
+
+            chargedTransactionId = paymentResult.TransactionId;
+            order.PaymentTransactionId = chargedTransactionId;
+
+            var createdTickets = order.Items
+                .Select(item => new Ticket
+                {
+                    OrderItemId = item.Id,
+                    TicketNumber = $"TKT-{Guid.NewGuid():N}".ToUpper(),
+                    CreatedAt = now
+                })
+                .ToList();
+
+            _db.Tickets.AddRange(createdTickets);
             await _db.SaveChangesAsync();
 
             await transaction.CommitAsync();
 
-            return new OrderDto
-            {
-                Id = order.Id,
-                UserId = order.UserId,
-                TotalAmount = order.TotalAmount,
-                CreatedAt = order.CreatedAt,
-                Items = order.Items.Select(item =>
-                {
-                    var ticket = createdTickets.First(
-                        t => t.OrderItemId == item.Id);
-
-                    return new OrderItemDto
-                    {
-                        Id = item.Id,
-                        EventSeatId = item.EventSeatId,
-                        Price = item.Price,
-                        TicketId = ticket.Id,
-                        TicketNumber = ticket.TicketNumber
-                    };
-                }).ToList()
-            };
+            return ToOrderDto(order, createdTickets);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateConcurrencyException ex)
         {
-            await transaction.RollbackAsync();
+            _logger.LogWarning(ex,
+                "Eşzamanlılık çakışması. UserId: {UserId}, EventId: {EventId}",
+                userId, newOrder.EventId);
 
+            await RollbackAndRefundAsync(transaction, chargedTransactionId, totalAmount);
             return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "Sipariş oluşturulurken beklenmeyen hata. UserId: {UserId}, EventId: {EventId}",
+                userId, newOrder.EventId);
+
+            await RollbackAndRefundAsync(transaction, chargedTransactionId, totalAmount);
+            throw;
         }
     }
 
@@ -249,17 +247,11 @@ public class OrderService : IOrderService
             return (false, "Etkinliğin başlamasına 2 saatten az bir süre kaldığı için bilet iptal edilemez.");
         }
 
-        // Karta İade (Refund) Süreci
         var refundAmount = ticket.OrderItem.Price;
         var transactionId = order.PaymentTransactionId ?? "MOCK-TXN";
-        
-        var refundResult = await _paymentService.ProcessRefundAsync(transactionId, refundAmount);
-        if (!refundResult.IsSuccess)
-        {
-            return (false, $"İade işlemi kart sağlayıcısı tarafından reddedildi: {refundResult.ErrorMessage}");
-        }
 
         await using var transaction = await _db.Database.BeginTransactionAsync();
+        var refunded = false;
 
         try
         {
@@ -271,13 +263,22 @@ public class OrderService : IOrderService
             eventSeat.ReservedUntil = null;
             eventSeat.ReservedByUserId = null;
 
-            // Siparişteki diğer biletlerin durumunu kontrol et
             var allTickets = order.Items.Select(i => i.Ticket).Where(t => t != null).ToList();
             var allCancelled = allTickets.All(t => t!.Id == ticket.Id || t.Status == TicketStatus.Cancelled);
 
             order.PaymentStatus = allCancelled ? PaymentStatus.Refunded : PaymentStatus.PartiallyRefunded;
 
             await _db.SaveChangesAsync();
+
+            var refundResult = await _paymentService.ProcessRefundAsync(transactionId, refundAmount);
+
+            if (!refundResult.IsSuccess)
+            {
+                await transaction.RollbackAsync();
+                return (false, $"İade işlemi kart sağlayıcısı tarafından reddedildi: {refundResult.ErrorMessage}");
+            }
+
+            refunded = true;
             await transaction.CommitAsync();
 
             var cardInfo = !string.IsNullOrEmpty(order.CardLastFourDigits)
@@ -286,10 +287,89 @@ public class OrderService : IOrderService
 
             return (true, $"Bilet iptal edildi. {refundAmount:N2} TL tutarındaki ücret {cardInfo} nolu karta iade edildi. Referans: {refundResult.TransactionId}");
         }
-        catch (Exception)
+        catch (DbUpdateConcurrencyException ex)
         {
+            _logger.LogWarning(ex, "Bilet iptalinde eşzamanlılık çakışması. TicketId: {TicketId}", ticketId);
+            await transaction.RollbackAsync();
+            return (false, "Bu bilet için başka bir işlem zaten yapılıyor veya tamamlandı. Lütfen sayfayı yenileyin.");
+        }
+        catch (Exception ex)
+        {
+            if (refunded)
+            {
+                _logger.LogCritical(ex,
+                    "İade yapıldı ancak iptal kaydedilemedi! TicketId: {TicketId}, Tutar: {Amount}, İşlem: {TransactionId}",
+                    ticketId, refundAmount, transactionId);
+            }
+            else
+            {
+                _logger.LogError(ex, "Bilet iptali sırasında hata. TicketId: {TicketId}", ticketId);
+            }
+
             await transaction.RollbackAsync();
             return (false, "İptal işlemi sırasında bir hata oluştu.");
         }
+    }
+
+    private async Task RollbackAndRefundAsync(
+        IDbContextTransaction transaction,
+        string? chargedTransactionId,
+        decimal amount)
+    {
+        try
+        {
+            await transaction.RollbackAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Transaction geri alınamadı.");
+        }
+
+        if (chargedTransactionId is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var refund = await _paymentService.ProcessRefundAsync(chargedTransactionId, amount);
+
+            if (!refund.IsSuccess)
+            {
+                _logger.LogCritical(
+                    "Ödeme alındı, sipariş kaydedilemedi ve iade reddedildi! İşlem: {TransactionId}, Tutar: {Amount}, Hata: {Error}",
+                    chargedTransactionId, amount, refund.ErrorMessage);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogCritical(ex,
+                "Ödeme alındı, sipariş kaydedilemedi ve iade sırasında hata oluştu! İşlem: {TransactionId}, Tutar: {Amount}",
+                chargedTransactionId, amount);
+        }
+    }
+
+    private static OrderDto ToOrderDto(Order order, List<Ticket> tickets)
+    {
+        return new OrderDto
+        {
+            Id = order.Id,
+            UserId = order.UserId,
+            TotalAmount = order.TotalAmount,
+            CreatedAt = order.CreatedAt,
+            Items = order.Items.Select(item =>
+            {
+                var ticket = tickets.First(t => t.OrderItemId == item.Id);
+
+                return new OrderItemDto
+                {
+                    Id = item.Id,
+                    EventSeatId = item.EventSeatId,
+                    Price = item.Price,
+                    TicketId = ticket.Id,
+                    TicketNumber = ticket.TicketNumber
+                };
+            }).ToList()
+        };
     }
 }

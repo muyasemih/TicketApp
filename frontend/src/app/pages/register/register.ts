@@ -2,6 +2,7 @@ import { Component, ChangeDetectorRef, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-register',
@@ -48,7 +49,7 @@ export class Register {
   };
 
   this.http
-    .post('http://localhost:5040/api/users', registerData)
+    .post(`${environment.apiUrl}/users`, registerData)
       .subscribe({
         next: () => {
           this.isLoading = false;

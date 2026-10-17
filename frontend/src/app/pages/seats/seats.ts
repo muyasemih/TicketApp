@@ -2,6 +2,7 @@ import { Component, ChangeDetectorRef, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { ActivatedRoute, RouterLink, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { environment } from '../../../environments/environment';
 
 interface Seat {
   id: number;
@@ -89,7 +90,7 @@ export class Seats {
   loadSeats(eventId: string) {
     this.http
       .get<Seat[]>(
-        `http://localhost:5040/api/events/${eventId}/seats`
+        `${environment.apiUrl}/events/${eventId}/seats`
       )
       .subscribe({
         next: (response) => {
@@ -107,7 +108,7 @@ export class Seats {
   loadVenueInfo(eventId: string, eventSeats: Seat[]) {
     this.http
       .get<any>(
-        `http://localhost:5040/api/events/${eventId}`
+        `${environment.apiUrl}/events/${eventId}`
       )
       .subscribe({
         next: (event) => {
@@ -213,7 +214,7 @@ export class Seats {
 
     this.http
       .post(
-        `http://localhost:5040/api/events/${eventId}/seats/${seat.seatId}/reserve`,
+        `${environment.apiUrl}/events/${eventId}/seats/${seat.seatId}/reserve`,
         {},
         { headers }
       )
@@ -288,7 +289,7 @@ export class Seats {
     
 
     this.http
-      .post('http://localhost:5040/api/orders', orderPayload, { headers })
+      .post(`${environment.apiUrl}/orders`, orderPayload, { headers })
       .subscribe({
         next: (response) => {
           this.isProcessingPayment = false;

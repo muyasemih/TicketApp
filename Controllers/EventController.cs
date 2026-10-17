@@ -5,21 +5,25 @@ using TicketApp.DTOs;
 using Microsoft.AspNetCore.Authorization;
 
 [ApiController]
-[Route("api/[controller]")]
-public class EventsController : ControllerBase
+[Route("api/events")]
+[Route("api/event")]
+public class EventController : ControllerBase
 {
     private readonly IEventService _service;
 
-    public EventsController(IEventService service)
+    public EventController(IEventService service)
     {
         _service = service;
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetEvents()
+    public async Task<IActionResult> GetEvents(
+        [FromQuery] string? search = null,
+        [FromQuery] int? venueId = null,
+        [FromQuery] DateTime? startDate = null,
+        [FromQuery] DateTime? endDate = null)
     {
-        var events = await _service.GetAllAsync();
-
+        var events = await _service.GetAllAsync(search, venueId, startDate, endDate);
         return Ok(events);
     }
 
@@ -63,6 +67,7 @@ public class EventsController : ControllerBase
 
         return Ok(result);
     }
+
     [Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<IActionResult> CreateEvent(CreateEventDto newEvent)
@@ -157,6 +162,7 @@ public class EventsController : ControllerBase
         return Ok(eventSeat);
     }
 
+    [Authorize]
     [HttpPost("{eventId}/seats/{seatId}/sell")]
     public async Task<IActionResult> SellSeat(int eventId, int seatId)
     {

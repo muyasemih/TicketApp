@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace TicketApp.Models;
 
 public enum TicketStatus
@@ -21,4 +23,7 @@ public class Ticket
     public TicketStatus Status { get; set; } = TicketStatus.Active;
 
     public DateTime? CancelledAt { get; set; }
+
+    [Timestamp]
+    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 }

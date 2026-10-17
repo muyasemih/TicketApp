@@ -12,22 +12,51 @@ public class EventRepository : IEventRepository
         _db = db;
     }
 
-    public async Task<List<Event>> GetAllAsync()
+    public async Task<List<Event>> GetAllAsync(
+        string? search = null, 
+        int? venueId = null, 
+        DateTime? startDate = null, 
+        DateTime? endDate = null)
     {
-        return await _db.Events
+        var query = _db.Events
+            .AsNoTracking()
             .Include(e => e.Venue)
-            .ThenInclude(v => v.Blocks)
-            .ThenInclude(b => b.Seats)
+                .ThenInclude(v => v!.Blocks)
             .Include(e => e.BlockPrices)
-            .ToListAsync();
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim().ToLower();
+            query = query.Where(e => 
+                e.Name.ToLower().Contains(term) || 
+                (e.Venue != null && e.Venue.Name.ToLower().Contains(term)));
+        }
+
+        if (venueId.HasValue)
+        {
+            query = query.Where(e => e.VenueId == venueId.Value);
+        }
+
+        if (startDate.HasValue)
+        {
+            query = query.Where(e => e.EventDate >= startDate.Value);
+        }
+
+        if (endDate.HasValue)
+        {
+            query = query.Where(e => e.EventDate <= endDate.Value);
+        }
+
+        return await query.OrderBy(e => e.EventDate).ToListAsync();
     }
 
     public async Task<Event?> GetByIdAsync(int id)
     {
         return await _db.Events
+            .AsNoTracking()
             .Include(e => e.Venue)
-            .ThenInclude(v => v.Blocks)
-            .ThenInclude(b => b.Seats)
+                .ThenInclude(v => v!.Blocks)
             .Include(e => e.BlockPrices)
             .FirstOrDefaultAsync(e => e.Id == id);
     }
@@ -36,7 +65,7 @@ public class EventRepository : IEventRepository
     {
         return await _db.Venues
             .Include(v => v.Blocks)
-            .ThenInclude(b => b.Seats)
+                .ThenInclude(b => b.Seats)
             .FirstOrDefaultAsync(v => v.Id == venueId);
     }
 

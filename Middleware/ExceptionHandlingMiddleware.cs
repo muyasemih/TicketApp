@@ -1,16 +1,25 @@
-using System.Net;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 
 namespace TicketApp.Middleware;
 
 public class ExceptionHandlingMiddleware
 {
-    private readonly RequestDelegate _next;
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
 
-    public ExceptionHandlingMiddleware(RequestDelegate next)
+    private readonly RequestDelegate _next;
+    private readonly ILogger<ExceptionHandlingMiddleware> _logger;
+
+    public ExceptionHandlingMiddleware(
+        RequestDelegate next,
+        ILogger<ExceptionHandlingMiddleware> logger)
     {
         _next = next;
+        _logger = logger;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -19,41 +28,54 @@ public class ExceptionHandlingMiddleware
         {
             await _next(context);
         }
-        catch (ArgumentException ex)
+        catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
         {
-            context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-            context.Response.ContentType = "application/json; charset=utf-8";
-
-            var response = new
-            {
-                error = ex.Message
-            };
-
-            var options = new JsonSerializerOptions
-            {
-                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-            };
-
-            await context.Response.WriteAsync(
-                JsonSerializer.Serialize(response, options));
+            _logger.LogDebug("İstek istemci tarafından iptal edildi: {Path}", context.Request.Path);
+            context.Response.StatusCode = 499;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-            context.Response.ContentType = "application/json; charset=utf-8";
-
-            var response = new
+            if (context.Response.HasStarted)
             {
-                error = "Beklenmeyen bir hata oluştu."
-            };
+                _logger.LogError(ex,
+                    "Yanıt başladıktan sonra hata oluştu: {Method} {Path}",
+                    context.Request.Method, context.Request.Path);
+                throw;
+            }
 
-            var options = new JsonSerializerOptions
-            {
-                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
-            };
-
-            await context.Response.WriteAsync(
-                JsonSerializer.Serialize(response, options));
+            await HandleExceptionAsync(context, ex);
         }
+    }
+
+    private async Task HandleExceptionAsync(HttpContext context, Exception ex)
+    {
+        var (statusCode, message) = ex switch
+        {
+            ArgumentException => (StatusCodes.Status400BadRequest, ex.Message),
+            KeyNotFoundException => (StatusCodes.Status404NotFound, ex.Message),
+            DbUpdateConcurrencyException => (
+                StatusCodes.Status409Conflict,
+                "Kayıt başka bir işlem tarafından değiştirildi. Lütfen tekrar deneyin."),
+            _ => (StatusCodes.Status500InternalServerError, "Beklenmeyen bir hata oluştu.")
+        };
+
+        if (statusCode >= StatusCodes.Status500InternalServerError)
+        {
+            _logger.LogError(ex,
+                "Yakalanmamış hata: {Method} {Path}",
+                context.Request.Method, context.Request.Path);
+        }
+        else
+        {
+            _logger.LogWarning(ex,
+                "İstek hatası ({StatusCode}): {Method} {Path}",
+                statusCode, context.Request.Method, context.Request.Path);
+        }
+
+        context.Response.StatusCode = statusCode;
+        context.Response.ContentType = "application/json; charset=utf-8";
+
+        await context.Response.WriteAsync(
+            JsonSerializer.Serialize(new { error = message }, JsonOptions));
     }
 }

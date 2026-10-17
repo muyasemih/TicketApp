@@ -5,7 +5,7 @@ using TicketApp.DTOs;
 
 public interface IEventService
 {
-    Task<List<EventDto>> GetAllAsync();
+    Task<List<EventDto>> GetAllAsync(string? search = null, int? venueId = null, DateTime? startDate = null, DateTime? endDate = null);
     Task<EventDto?> GetByIdAsync(int id);
     Task<List<EventSeat>> GetSeatsByEventIdAsync(int eventId);
     Task<Event> CreateAsync(Event newEvent);

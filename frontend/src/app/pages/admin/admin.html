@@ -29,7 +29,6 @@
 
         <div class="form-group">
           <label for="name">Etkinlik Adı</label>
-
           <input
             id="name"
             type="text"
@@ -42,7 +41,6 @@
 
         <div class="form-group">
           <label for="date">Tarih</label>
-
           <input
             id="date"
             type="datetime-local"
@@ -53,38 +51,35 @@
         </div>
 
         <div class="form-group">
-          <label for="venueId">Salon ID</label>
-
-          <input
+          <label for="venueId">Salon Seçimi</label>
+          <select
             id="venueId"
-            type="number"
             name="venueId"
             [(ngModel)]="venueId"
             (change)="loadVenueBlocks()"
-            placeholder="Salon ID"
-            min="1"
             required
-          />
+          >
+            @if (venues.length === 0) {
+              <option [ngValue]="null" disabled>Salonlar yükleniyor...</option>
+            }
+            @for (venue of venues; track venue.id) {
+              <option [ngValue]="venue.id">{{ venue.name }} (ID: {{ venue.id }})</option>
+            }
+          </select>
         </div>
 
         @if (venueBlocks.length > 0) {
-
           <div class="prices-section">
-
             <h3>Bilet Fiyatları</h3>
-
             <p class="prices-description">
               Her blok için ayrı bilet fiyatı belirleyin.
             </p>
 
             @for (block of venueBlocks; track block.id; let i = $index) {
-
               <div class="form-group">
-
                 <label [for]="'price-' + block.id">
                   {{ block.name }}
                 </label>
-
                 <div class="price-input">
                   <input
                     [id]="'price-' + block.id"
@@ -96,29 +91,19 @@
                     placeholder="Bilet fiyatı"
                     required
                   />
-
                   <span>TL</span>
                 </div>
-
               </div>
-
             }
-
           </div>
-
         }
 
         <div class="form-actions">
-
-          <button
-            type="submit"
-            [disabled]="isSaving"
-          >
+          <button type="submit" [disabled]="isSaving">
             {{ editingId === null ? 'Etkinlik Ekle' : 'Güncelle' }}
           </button>
 
           @if (editingId !== null) {
-
             <button
               type="button"
               class="cancel-button"
@@ -126,16 +111,13 @@
             >
               İptal
             </button>
-
           }
-
         </div>
 
       </form>
     </div>
 
     <div class="events-card">
-
       <h2>Mevcut Etkinlikler</h2>
 
       @if (isLoading) {
@@ -147,42 +129,28 @@
       }
 
       @for (event of events; track event.id) {
-
         <div class="event-row">
-
           <div class="event-info">
-
             <h3>{{ event.name }}</h3>
-
             <p>ID: {{ event.id }}</p>
-
-            <p>Salon: {{ event.venueId }}</p>
-
+            <p>Salon: {{ event.venue?.name || event.venueId }}</p>
             <p>
               {{ event.eventDate | date:'dd.MM.yyyy HH:mm' }}
             </p>
 
             @if (event.blockPrices && event.blockPrices.length > 0) {
-
               <div class="event-prices">
-
                 @for (price of event.blockPrices; track price.id) {
-
                   <span>
                     Blok {{ price.venueBlockId }}:
                     {{ price.price }} TL
                   </span>
-
                 }
-
               </div>
-
             }
-
           </div>
 
           <div class="event-actions">
-
             <button
               class="edit-button"
               (click)="editEvent(event)"
@@ -196,13 +164,9 @@
             >
               Sil
             </button>
-
           </div>
-
         </div>
-
       }
-
     </div>
 
   </div>

@@ -2,6 +2,7 @@ import { Component, ChangeDetectorRef, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { DatePipe, CurrencyPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { environment } from '../../../environments/environment';
 
 interface OrderItem {
   id: number;
@@ -53,7 +54,7 @@ export class Orders {
     });
 
     this.http
-      .get<Order[]>('http://localhost:5040/api/orders', { headers })
+      .get<Order[]>(`${environment.apiUrl}/orders`, { headers })
       .subscribe({
         next: (response) => {
           this.orders = response;
@@ -87,7 +88,7 @@ export class Orders {
     });
 
     this.http
-      .post<{ message: string }>(`http://localhost:5040/api/orders/tickets/${ticketId}/cancel`, {}, { headers })
+      .post<{ message: string }>(`${environment.apiUrl}/orders/tickets/${ticketId}/cancel`, {}, { headers })
       .subscribe({
         next: (res) => {
           alert(res.message || 'Bilet başarıyla iptal edildi.');

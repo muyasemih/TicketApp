@@ -1,6 +1,7 @@
 import { Component, ChangeDetectorRef, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { environment } from '../../../environments/environment';
 
 interface VenueBlock {
   id: number;
@@ -58,7 +59,7 @@ export class EventDetail {
     }
 
     this.http
-      .get<Event>(`http://localhost:5040/api/events/${id}`)
+      .get<Event>(`${environment.apiUrl}/events/${id}`)
       .subscribe({
         next: (response) => {
           console.log('Etkinlik detayı:', response);
