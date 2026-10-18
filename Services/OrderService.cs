@@ -234,7 +234,10 @@ public class OrderService : IOrderService
             return (false, "Bu bilet zaten iptal edilmiş.");
         }
 
-        var eventDate = ticket.OrderItem.EventSeat.Event.EventDate;
+        var rawEventDate = ticket.OrderItem.EventSeat.Event.EventDate;
+        var eventDate = rawEventDate.Kind == DateTimeKind.Utc
+            ? rawEventDate
+            : DateTime.SpecifyKind(rawEventDate, DateTimeKind.Utc);
         var now = DateTime.UtcNow;
 
         if (eventDate <= now)

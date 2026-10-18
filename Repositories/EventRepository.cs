@@ -16,7 +16,9 @@ public class EventRepository : IEventRepository
         string? search = null, 
         int? venueId = null, 
         DateTime? startDate = null, 
-        DateTime? endDate = null)
+        DateTime? endDate = null,
+        int page = 1,
+        int pageSize = 50)
     {
         var query = _db.Events
             .AsNoTracking()
@@ -48,7 +50,14 @@ public class EventRepository : IEventRepository
             query = query.Where(e => e.EventDate <= endDate.Value);
         }
 
-        return await query.OrderBy(e => e.EventDate).ToListAsync();
+        query = query.OrderBy(e => e.EventDate);
+
+        if (page > 0 && pageSize > 0)
+        {
+            query = query.Skip((page - 1) * pageSize).Take(pageSize);
+        }
+
+        return await query.ToListAsync();
     }
 
     public async Task<Event?> GetByIdAsync(int id)
@@ -133,6 +142,14 @@ public class EventRepository : IEventRepository
     public async Task DeleteAsync(Event eventItem)
     {
         _db.Events.Remove(eventItem);
+        await _db.SaveChangesAsync();
+    }
+
+    public async Task ReplaceEventSeatsAsync(int eventId, List<EventSeat> newSeats)
+    {
+        var existing = await _db.EventSeats.Where(es => es.EventId == eventId).ToListAsync();
+        _db.EventSeats.RemoveRange(existing);
+        _db.EventSeats.AddRange(newSeats);
         await _db.SaveChangesAsync();
     }
 }

@@ -21,9 +21,11 @@ public class EventController : ControllerBase
         [FromQuery] string? search = null,
         [FromQuery] int? venueId = null,
         [FromQuery] DateTime? startDate = null,
-        [FromQuery] DateTime? endDate = null)
+        [FromQuery] DateTime? endDate = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50)
     {
-        var events = await _service.GetAllAsync(search, venueId, startDate, endDate);
+        var events = await _service.GetAllAsync(search, venueId, startDate, endDate, page, pageSize);
         return Ok(events);
     }
 

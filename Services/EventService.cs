@@ -22,9 +22,11 @@ public class EventService : IEventService
         string? search = null, 
         int? venueId = null, 
         DateTime? startDate = null, 
-        DateTime? endDate = null)
+        DateTime? endDate = null,
+        int page = 1,
+        int pageSize = 50)
     {
-        var events = await _repository.GetAllAsync(search, venueId, startDate, endDate);
+        var events = await _repository.GetAllAsync(search, venueId, startDate, endDate, page, pageSize);
 
         return events.Select(e => new EventDto
         {
@@ -185,6 +187,7 @@ public class EventService : IEventService
             return null;
         }
 
+        Venue? newVenue = null;
         if (updatedEvent.VenueId.HasValue)
         {
             var venue = await _repository.GetVenueWithSeatsAsync(updatedEvent.VenueId.Value);
@@ -193,6 +196,17 @@ public class EventService : IEventService
             {
                 throw new ArgumentException(
                     $"Venue bulunamadı. Id: {updatedEvent.VenueId.Value}");
+            }
+
+            if (eventItem.VenueId != updatedEvent.VenueId)
+            {
+                var existingSeats = await _repository.GetEventSeatsAsync(id);
+                var hasSoldOrReserved = existingSeats.Any(s => s.Status != EventSeatStatus.Available);
+                if (hasSoldOrReserved)
+                {
+                    throw new InvalidOperationException("Bilet satışı veya rezervasyonu başlamış bir etkinliğin salonu değiştirilemez.");
+                }
+                newVenue = venue;
             }
 
             var validBlockIds = venue.Blocks
@@ -214,6 +228,21 @@ public class EventService : IEventService
         eventItem.VenueId = updatedEvent.VenueId;
 
         await _repository.UpdateAsync(eventItem);
+
+        if (newVenue != null)
+        {
+            var newEventSeats = newVenue.Blocks
+                .SelectMany(block => block.Seats)
+                .Select(seat => new EventSeat
+                {
+                    EventId = eventItem.Id,
+                    SeatId = seat.Id,
+                    Status = EventSeatStatus.Available
+                })
+                .ToList();
+
+            await _repository.ReplaceEventSeatsAsync(id, newEventSeats);
+        }
 
         await _repository.UpdateEventBlockPricesAsync(
             id,

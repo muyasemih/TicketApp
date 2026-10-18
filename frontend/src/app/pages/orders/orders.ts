@@ -41,7 +41,7 @@ export class Orders {
   }
 
   loadOrders() {
-    const token = localStorage.getItem('token');
+    const token = typeof localStorage !== 'undefined' ? localStorage.getItem('token') : null;
 
     if (!token) {
       this.errorMessage = 'Siparişlerinizi görmek için giriş yapmalısınız.';

@@ -39,7 +39,11 @@ jobs:
 
       - name: Install Dependencies
         working-directory: ./frontend
-        run: npm ci || npm install
+        run: npm ci
+
+      - name: Test Frontend
+        working-directory: ./frontend
+        run: npm test -- --watch=false
 
       - name: Build Angular
         working-directory: ./frontend

@@ -81,23 +81,33 @@ public class VenueService : IVenueService
     {
         foreach (var block in venue.Blocks)
         {
-            if (block.Type != VenueBlockType.Seated)
+            if (block.Type == VenueBlockType.Seated)
             {
-                continue;
+                block.Capacity = block.RowCount * block.SeatsPerRow;
+                block.Seats = new List<Seat>();
+
+                for (int row = 1; row <= block.RowCount; row++)
+                {
+                    for (int seat = 1; seat <= block.SeatsPerRow; seat++)
+                    {
+                        block.Seats.Add(new Seat
+                        {
+                            RowNumber = row,
+                            SeatNumber = seat
+                        });
+                    }
+                }
             }
-
-            block.Capacity = block.RowCount * block.SeatsPerRow;
-
-            block.Seats = new List<Seat>();
-
-            for (int row = 1; row <= block.RowCount; row++)
+            else if (block.Type == VenueBlockType.Standing)
             {
-                for (int seat = 1; seat <= block.SeatsPerRow; seat++)
+                block.Seats = new List<Seat>();
+
+                for (int i = 1; i <= block.Capacity; i++)
                 {
                     block.Seats.Add(new Seat
                     {
-                        RowNumber = row,
-                        SeatNumber = seat
+                        RowNumber = 0,
+                        SeatNumber = i
                     });
                 }
             }

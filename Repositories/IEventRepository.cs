@@ -4,7 +4,7 @@ using TicketApp.Models;
 
 public interface IEventRepository
 {
-    Task<List<Event>> GetAllAsync(string? search = null, int? venueId = null, DateTime? startDate = null, DateTime? endDate = null);
+    Task<List<Event>> GetAllAsync(string? search = null, int? venueId = null, DateTime? startDate = null, DateTime? endDate = null, int page = 1, int pageSize = 50);
     Task<Event?> GetByIdAsync(int id);
     Task<Venue?> GetVenueWithSeatsAsync(int venueId);
     Task<List<EventSeat>> GetEventSeatsAsync(int eventId);
@@ -15,4 +15,5 @@ public interface IEventRepository
     Task UpdateEventBlockPricesAsync(int eventId, List<EventBlockPrice> blockPrices);
     Task UpdateAsync(Event eventItem);
     Task DeleteAsync(Event eventItem);
+    Task ReplaceEventSeatsAsync(int eventId, List<EventSeat> newSeats);
 }

@@ -177,7 +177,7 @@ export class Admin {
 
     const eventData = {
       name: this.name,
-      eventDate: this.date,
+      eventDate: new Date(this.date).toISOString(),
       venueId: Number(this.venueId),
       blocks: blocks
     };
